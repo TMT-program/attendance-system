@@ -1,24 +1,33 @@
 <template>
-  <div class="login-container">
-    <h2>TMT ログイン</h2>
-    <form @submit.prevent="handleLogin">
-      <label for="email">メールアドレス</label>
-      <input id="email" type="email" v-model="email" required placeholder="example@mail.com" />
+  <div class="login-wrapper">
+    <div class="login-card">
+      <h1 class="login-title">TMT 勤怠システム</h1>
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="form-group">
+          <label for="email">メールアドレス</label>
+          <input id="email" type="email" v-model="email" required placeholder="example@mail.com" />
+        </div>
 
-      <label for="password">パスワード</label>
-      <input id="password" type="password" v-model="password" required placeholder="パスワードを入力" />
+        <div class="form-group">
+          <label for="password">パスワード</label>
+          <input id="password" type="password" v-model="password" required placeholder="パスワードを入力" />
+        </div>
 
-      <button type="submit" :disabled="loading">{{ loading ? 'ログイン中...' : 'ログイン' }}</button>
-    </form>
-    <p class="error-message" v-if="error">{{ error }}</p>
+        <button type="submit" :disabled="loading">{{ loading ? 'ログイン中...' : 'ログイン' }}</button>
 
-    <p>アカウントをお持ちでない方は  
-      <button class="link-button" @click="handleRegister">新規登録</button>
-    </p>
+        <!-- error-message を v-show に変更し、常に領域を確保 -->
+        <p class="error-message" v-show="true">{{ error || '　' }}</p>
+
+        <p class="register-link">
+          アカウントをお持ちでない方は
+          <button type="button" class="link-button" @click="handleRegister">新規登録</button>
+        </p>
+      </form>
+    </div>
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../firebase'
@@ -28,14 +37,14 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const router = useRouter()  // ルーターを使用
+const router = useRouter()
 
 async function handleLogin() {
   error.value = ''
   loading.value = true
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value)
-    router.push('/menu')  // ログイン成功後にメニュー画面へ遷移
+    router.push('/menu')
   } catch (e: any) {
     error.value = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。'
   } finally {
@@ -48,7 +57,7 @@ async function handleRegister() {
   loading.value = true
   try {
     await createUserWithEmailAndPassword(auth, email.value, password.value)
-    router.push('/menu')  // 登録後にもメニュー画面へ遷移（自動ログインされるため）
+    router.push('/menu')
   } catch (e: any) {
     error.value = '登録に失敗しました。メールアドレスとパスワードの形式を確認してください。'
   } finally {
@@ -57,92 +66,114 @@ async function handleRegister() {
 }
 </script>
 
-
 <style scoped>
-.login-container {
-  max-width: 400px;
-  margin: 4rem auto;
-  padding: 2rem;
-  border: 2px solid #1e3a8a; /* 青系の濃いライン */
-  border-radius: 8px;
-  background: #fff0f0; /* 薄い赤系背景 */
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
-  font-family: Arial, sans-serif;
-  color: #1e3a8a; /* 青文字 */
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  background-color: #f8fafc;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-h2 {
+.login-card {
+  background-color: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  width: 420px;
+  border: 1px solid #d1d5db;
+  box-sizing: border-box;
+}
+
+.login-title {
   text-align: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1e3a8a;
+  margin-bottom: 2rem;
+}
+
+.login-form .form-group {
   margin-bottom: 1.5rem;
-  color: #dc2626; /* 赤系 */
 }
 
 label {
   display: block;
-  margin-top: 1rem;
   margin-bottom: 0.5rem;
-  font-weight: bold;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #1e3a8a;
-  border-radius: 4px;
+  padding: 0.6rem;
   font-size: 1rem;
-  box-sizing: border-box;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
 }
 
-button[type="submit"] {
-  margin-top: 1.5rem;
+input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+button[type='submit'] {
   width: 100%;
-  background-color: #dc2626; /* 赤 */
-  color: white;
-  border: none;
   padding: 0.75rem;
+  background-color: #2563eb;
+  color: white;
   font-weight: bold;
-  font-size: 1.1rem;
-  border-radius: 4px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-button[type="submit"]:hover:not(:disabled) {
-  background-color: #b91c1c; /* 赤の濃いめ */
+button[type='submit']:hover:not(:disabled) {
+  background-color: #1d4ed8;
 }
 
-button[type="submit"]:disabled {
-  background-color: #fca5a5; /* 薄い赤 */
+button[type='submit']:disabled {
+  background-color: #93c5fd;
   cursor: not-allowed;
 }
 
 .error-message {
+  max-width: 100%; /* 追加: 親の幅以上に広がらない */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  min-height: 1.5em;
   margin-top: 1rem;
-  color: #b91c1c; /* 濃い赤 */
+  color: #dc2626;
   font-weight: bold;
   text-align: center;
+  padding: 0 0.5rem; /* 横に少し内側余白をつけて幅がはみ出しにくくする */
 }
 
-p {
+.register-link {
   margin-top: 1.5rem;
   text-align: center;
-  color: #1e3a8a; /* 青 */
   font-size: 0.9rem;
+  color: #475569;
 }
 
 .link-button {
   background: none;
   border: none;
-  color: #2563eb; /* 明るい青 */
+  color: #2563eb;
+  font-weight: bold;
   text-decoration: underline;
   cursor: pointer;
-  font-weight: bold;
   padding: 0;
-  margin-left: 0.3rem;
-  font-size: 0.9rem;
+  margin-left: 0.4rem;
 }
 
 .link-button:hover {
-  color: #1e40af; /* 濃い青 */
+  color: #1e40af;
 }
 </style>

@@ -145,7 +145,7 @@ const fetchRecords = async () => {
       },
     })
     console.log(res)
-    const data: { [date: string]: { start?: string; end?: string } } = res.data || {}
+    const data = (res.data || {}) as { [date: string]: { start?: string; end?: string } }
 
     const result: RecordEntry[] = []
     for (let d = 1; d <= daysInMonth; d++) {
