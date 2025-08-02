@@ -31,8 +31,7 @@
       <span>{{ page }} / {{ totalPages }}</span>
       <button @click="nextPage" :disabled="page === totalPages">→</button>
     </div>
-    <button class="back-button" @click="$emit('goBack')">← メニューに戻る</button>
-  </div>
+    </div>
 </template>
 
 <script setup lang="ts">

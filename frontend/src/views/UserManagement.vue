@@ -1,5 +1,6 @@
 <template>
   <div class="user-management">
+    <AppHeader :onBack="showHeaderBack ? goBackToMenu : undefined" />
     <h1 class="page-title">👥 ユーザー管理</h1>
 
     <UserMenu v-if="currentView === 'menu'" @change-view="changeView" />
@@ -7,24 +8,25 @@
       v-if="currentView === 'list'"
       :users="users"
       @refresh-users="fetchUsers"
-      @go-back="changeView('menu')"
+      @go-back="goBackToMenu"
     />
     <UserAdd
       v-if="currentView === 'add'"
-      @go-back="changeView('menu')"
+      @go-back="goBackToMenu"
     />
     <UserDelete
       v-if="currentView === 'delete'"
       :users="users"
       @refresh-users="fetchUsers"
-      @go-back="changeView('menu')"
+      @go-back="goBackToMenu"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
+import AppHeader from '../components/AppHeader.vue'
 import UserMenu from './UserMenu.vue'
 import UserList from './UserList.vue'
 import UserAdd from './UserAdd.vue'
@@ -34,8 +36,10 @@ import type { User } from '../components/types'
 const currentView = ref<'menu' | 'list' | 'add' | 'delete'>('menu')
 const users = ref<User[]>([])
 
-function changeView(view: 'menu' | 'list' | 'add' | 'delete') {
-  currentView.value = view
+const showHeaderBack = computed(() => currentView.value !== 'menu')
+
+function goBackToMenu() {
+  currentView.value = 'menu'
 }
 
 async function fetchUsers() {
@@ -47,8 +51,12 @@ async function fetchUsers() {
   }
 }
 
-// 初回ロード時にユーザー一覧取得（一覧からスタートするケースも考慮）
-onMounted(fetchUsers)
+async function changeView(view: 'menu' | 'list' | 'add' | 'delete') {
+  if (view === 'list' || view === 'delete') {
+    await fetchUsers()
+  }
+  currentView.value = view
+}
 </script>
 
 <style scoped>

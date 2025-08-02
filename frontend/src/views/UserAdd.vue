@@ -7,8 +7,7 @@
       <button @click="addUser">追加</button>
     </div>
     <p v-if="addMessage">{{ addMessage }}</p>
-    <button class="back-button" @click="$emit('back')">← メニューに戻る</button>
-  </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -19,9 +18,13 @@ const newEmail = ref('')
 const newPassword = ref('')
 const addMessage = ref('')
 
+interface AddUserResponse {
+  email: string
+}
+
 const addUser = async () => {
   try {
-    const res = await axios.post('http://localhost:3000/api/users', {
+    const res = await axios.post<AddUserResponse>('http://localhost:3000/api/users', {
       email: newEmail.value,
       password: newPassword.value,
       displayName: newEmail.value.split('@')[0]
@@ -34,6 +37,7 @@ const addUser = async () => {
     addMessage.value = 'ユーザー追加に失敗しました'
   }
 }
+
 </script>
 
 <style scoped>

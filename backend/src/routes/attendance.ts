@@ -4,6 +4,23 @@ import { admin } from '../firebase'
 
 const router = express.Router()
 
+// JST日付を抽出する関数（+9時間補正なし）
+const getJstDateParts = (isoString: string) => {
+  const date = new Date(isoString)
+
+  const jstYear = date.getFullYear()
+  const jstMonth = String(date.getMonth() + 1).padStart(2, '0')
+  const jstDay = String(date.getDate()).padStart(2, '0')
+
+  return {
+    year: jstYear,
+    month: jstMonth,
+    day: jstDay,
+    yearMonth: `${jstYear}-${jstMonth}`,
+    fullDate: `${jstYear}-${jstMonth}-${jstDay}`,
+  }
+}
+
 // 出勤時間を記録
 router.post('/start', async (req: Request, res: Response) => {
   try {
@@ -12,9 +29,7 @@ router.post('/start', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'uid と time が必要です' })
     }
 
-    const date = new Date(time)
-    const yearMonth = time.slice(0, 7) // 'YYYY-MM'
-    const day = String(date.getDate()).padStart(2, '0') // '01', '02'など
+    const { yearMonth, fullDate } = getJstDateParts(time)
 
     const docRef = admin
       .firestore()
@@ -25,7 +40,7 @@ router.post('/start', async (req: Request, res: Response) => {
 
     await docRef.set(
       {
-        [day]: { start: time },
+        [fullDate]: { start: time },
       },
       { merge: true }
     )
@@ -45,9 +60,7 @@ router.post('/end', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'uid と time が必要です' })
     }
 
-    const date = new Date(time)
-    const yearMonth = time.slice(0, 7)
-    const day = String(date.getDate()).padStart(2, '0')
+    const { yearMonth, fullDate } = getJstDateParts(time)
 
     const docRef = admin
       .firestore()
@@ -58,7 +71,7 @@ router.post('/end', async (req: Request, res: Response) => {
 
     await docRef.set(
       {
-        [day]: { end: time },
+        [fullDate]: { end: time },
       },
       { merge: true }
     )
@@ -96,7 +109,10 @@ router.get('/', async (req: Request, res: Response) => {
       return res.json({})
     }
 
-    res.json(doc.data())
+    const rawData = doc.data() || {}
+
+    // レスポンスのキーは fullDate（YYYY-MM-DD）
+    res.json(rawData)
   } catch (error) {
     console.error('勤務実績取得エラー:', error)
     res.status(500).json({ error: '勤務実績の取得に失敗しました' })

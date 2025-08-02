@@ -39,8 +39,6 @@
 
     <p v-if="deleteMessage">{{ deleteMessage }}</p>
 
-    <button class="back-button" @click="$emit('go-back')">← メニューに戻る</button>
-
     <div v-if="showConfirm" class="modal-overlay">
       <div class="modal">
         <p>「{{ selectedUser?.displayName }}」を削除しますか？</p>

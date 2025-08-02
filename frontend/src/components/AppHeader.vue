@@ -1,8 +1,10 @@
 <template>
   <header class="app-header">
     <div class="left-section">
-      <button v-if="showBackButton" @click="goBack" class="back-button">← 戻る</button>
-      <div class="title">📘 勤怠システム</div>
+      <button v-if="showBackButton" @click="props.onBack ? props.onBack() : goBack()" class="back-button">← 戻る</button>
+      <div class="title">
+        <BadgeCheck class="icon" /> 勤怠管理システム
+      </div>
     </div>
     <div class="user-section" v-if="user">
       <span class="username">{{ user.displayName || user.email }}</span>
@@ -12,6 +14,8 @@
 </template>
 
 <script setup lang="ts">
+import { BadgeCheck } from 'lucide-vue-next'
+const props = defineProps<{ onBack?: () => void }>()
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { auth } from '../firebase'
@@ -32,10 +36,8 @@ const logout = async () => {
   router.push('/')
 }
 
-// /menu のときは戻るボタン非表示
 const showBackButton = computed(() => route.path !== '/menu')
 
-// 1つ前のページに戻る
 const goBack = () => {
   router.back()
 }
@@ -71,6 +73,7 @@ const goBack = () => {
   cursor: pointer;
   margin-right: 1rem;
   padding: 0;
+  outline: none;
 }
 
 .back-button:hover {
@@ -81,6 +84,14 @@ const goBack = () => {
   font-size: 1.4rem;
   font-weight: bold;
   color: #dc2626;
+  display: flex;
+  align-items: center;
+}
+
+.title .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0.4rem;
 }
 
 .user-section {
