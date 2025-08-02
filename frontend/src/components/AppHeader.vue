@@ -7,7 +7,10 @@
       </div>
     </div>
     <div class="user-section" v-if="user">
-      <span class="username">{{ user.displayName || user.email }}</span>
+      <span class="username">
+        {{ user.displayName || user.email }}
+        <template v-if="isAdmin">（管理者）</template>
+      </span>
       <button @click="logout">ログアウト</button>
     </div>
   </header>
@@ -15,19 +18,31 @@
 
 <script setup lang="ts">
 import { BadgeCheck } from 'lucide-vue-next'
-const props = defineProps<{ onBack?: () => void }>()
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { auth } from '../firebase'
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
+import { doc, getDoc, getFirestore } from 'firebase/firestore'
 
-const user = ref<User | null>(null)
+const props = defineProps<{ onBack?: () => void }>()
 const router = useRouter()
 const route = useRoute()
 
+const user = ref<User | null>(null)
+const isAdmin = ref<boolean>(false)
+
+const db = getFirestore()
+
 onMounted(() => {
-  onAuthStateChanged(auth, (u) => {
+  onAuthStateChanged(auth, async (u) => {
     user.value = u
+    if (u) {
+      const userDoc = await getDoc(doc(db, 'users', u.uid))
+      if (userDoc.exists()) {
+        const data = userDoc.data()
+        isAdmin.value = data.isAdmin === true
+      }
+    }
   })
 })
 

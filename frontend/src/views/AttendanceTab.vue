@@ -18,21 +18,32 @@ const props = defineProps<{
   onUpdate: () => void
 }>()
 
-// JSTに変換して "HH:MM" 表示する関数
-const toJSTTimeString = (iso: string) => {
-  const date = new Date(iso)
-  date.setHours(date.getHours()+9)
-  return date.toTimeString().slice(0, 5)
+// 現在時刻を "HH:MM" 形式で返す関数
+const getCurrentTimeString = () => {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+// 現在日付（JST）を "YYYY-MM-DD" 形式で返す関数
+const getCurrentDateString = () => {
+  const now = new Date()
+  now.setHours(now.getHours() + 9) // JST補正
+  return now.toISOString().slice(0, 10)
 }
 
 const clockIn = async () => {
-  const now = new Date()
-  const iso = now.toISOString()
-  props.attendance.start = toJSTTimeString(iso)
+  const time = getCurrentTimeString()
+  const date = getCurrentDateString()
+  props.attendance.start = time
   try {
-    await axios.post(`http://localhost:3000/api/attendance/start`, {
+    await axios.post(`http://localhost:3000/api/attendance/report`, {
       uid: props.uid,
-      time: iso,
+      date,
+      start: time,
+      task: '-',
+      status: '未承認'
     })
     props.onUpdate()
   } catch (e) {
@@ -41,13 +52,16 @@ const clockIn = async () => {
 }
 
 const clockOut = async () => {
-  const now = new Date()
-  const iso = now.toISOString()
-  props.attendance.end = toJSTTimeString(iso)
+  const time = getCurrentTimeString()
+  const date = getCurrentDateString()
+  props.attendance.end = time
   try {
-    await axios.post(`http://localhost:3000/api/attendance/end`, {
+    await axios.post(`http://localhost:3000/api/attendance/report`, {
       uid: props.uid,
-      time: iso,
+      date,
+      end: time,
+      task: '-',
+      status: '未承認'
     })
     props.onUpdate()
   } catch (e) {
