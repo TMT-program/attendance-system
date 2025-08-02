@@ -3,33 +3,36 @@
     <h1 class="title">メニュー</h1>
     <div class="menu-grid">
       <button class="menu-card" @click="goToUserManagement">
-        <span class="icon">👤</span>
+        <User class="icon" />
         <span class="label">ユーザー管理</span>
       </button>
       <button class="menu-card" @click="goToAttendanceReport">
-        <span class="icon">📝</span>
+        <ClipboardEdit class="icon" />
         <span class="label">勤務報告</span>
       </button>
       <button class="menu-card" @click="goAnnouncements">
-        <span class="icon">📢</span>
+        <Megaphone class="icon" />
         <span class="label">周知事項</span>
       </button>
     </div>
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { User, ClipboardEdit, Megaphone } from 'lucide-vue-next'
 
 const router = useRouter()
 
-function goToUserManagement() {
+const goToUserManagement = () => {
   router.push({ name: 'UserManagement' })
 }
-function goToAttendanceReport() {
+
+const goToAttendanceReport = () => {
   router.push({ name: 'AttendanceReport' })
 }
-function goAnnouncements() {
+
+const goAnnouncements = () => {
   router.push({ name: 'Announcements' })
 }
 </script>
@@ -46,7 +49,7 @@ function goAnnouncements() {
 .title {
   font-size: 2.4rem;
   margin-bottom: 2rem;
-  color: #1e3a8a;
+  color: #1e3a8a; /* indigo-900 */
   font-weight: bold;
 }
 
@@ -62,7 +65,7 @@ function goAnnouncements() {
   height: 160px;
   border: 2px solid #1e3a8a;
   border-radius: 12px;
-  background-color: #f0f8ff;
+  background-color: #f8fafc; /* slate-50 */
   color: #1e3a8a;
   font-size: 1.2rem;
   font-weight: bold;
@@ -72,17 +75,25 @@ function goAnnouncements() {
   align-items: center;
   transition: all 0.3s ease;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .menu-card:hover {
-  background-color: #dbeafe;
+  background-color: #e0f2fe; /* sky-100 */
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 .icon {
-  font-size: 2.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
   margin-bottom: 0.5rem;
+  color: #334155; /* slate-700 */
+  transition: color 0.2s ease;
+}
+
+.menu-card:hover .icon {
+  color: #dc2626; /* red-600 */
 }
 
 .label {

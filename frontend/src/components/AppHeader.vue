@@ -1,6 +1,9 @@
 <template>
   <header class="app-header">
-    <div class="title">📘 勤怠システム</div>
+    <div class="left-section">
+      <button v-if="showBackButton" @click="goBack" class="back-button">← 戻る</button>
+      <div class="title">📘 勤怠システム</div>
+    </div>
     <div class="user-section" v-if="user">
       <span class="username">{{ user.displayName || user.email }}</span>
       <button @click="logout">ログアウト</button>
@@ -9,13 +12,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { auth } from '../firebase'
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 
 const user = ref<User | null>(null)
 const router = useRouter()
+const route = useRoute()
 
 onMounted(() => {
   onAuthStateChanged(auth, (u) => {
@@ -27,6 +31,14 @@ const logout = async () => {
   await signOut(auth)
   router.push('/')
 }
+
+// /menu のときは戻るボタン非表示
+const showBackButton = computed(() => route.path !== '/menu')
+
+// 1つ前のページに戻る
+const goBack = () => {
+  router.back()
+}
 </script>
 
 <style scoped>
@@ -35,7 +47,7 @@ const logout = async () => {
   top: 0;
   left: 0;
   width: 100%;
-  height: 64px; /* 高さを明示 */
+  height: 64px;
   z-index: 1000;
   display: flex;
   justify-content: space-between;
@@ -43,7 +55,26 @@ const logout = async () => {
   background-color: #fef2f2;
   border-bottom: 2px solid #dc2626;
   padding: 0 1.5rem;
-  box-sizing: border-box; /* ← paddingで高さがはみ出ないように */
+  box-sizing: border-box;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #dc2626;
+  cursor: pointer;
+  margin-right: 1rem;
+  padding: 0;
+}
+
+.back-button:hover {
+  text-decoration: underline;
 }
 
 .title {
@@ -58,7 +89,7 @@ const logout = async () => {
 }
 
 .username {
-  margin-right: 1rem; /* ここで間隔を空ける */
+  margin-right: 1rem;
   font-weight: 600;
   color: #1e3a8a;
 }
@@ -69,7 +100,7 @@ const logout = async () => {
   border: none;
   padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
-  height: 36px;            /* ← 高さを制限 */
+  height: 36px;
   line-height: 1.2;
   border-radius: 4px;
   cursor: pointer;

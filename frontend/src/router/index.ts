@@ -5,6 +5,10 @@ import Menu from '../views/Menu.vue'
 import UserManagement from '../views/UserManagement.vue'
 import AttendanceReport from '../views/AttendanceReport.vue'
 import Announcements from '../views/Announcements.vue'
+import UserMenu from '../views/UserMenu.vue'
+import UserList from '../views/UserList.vue'
+import UserAdd from '../views/UserAdd.vue'
+import UserDelete from '../views/UserDelete.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -40,6 +44,26 @@ const routes: Array<RouteRecordRaw> = [
     component: Announcements,
     meta: { requiresAuth: true }, // 🔐 認証が必要
   },
+  {
+    path: '/UserMenu',
+    name: 'UserMenu',
+    component: UserMenu
+  },
+  {
+    path: '/UserList',
+    name: 'UserList',
+    component: UserList
+  },
+  {
+    path: '/UserAdd',
+    name: 'UserAdd',
+    component: UserAdd
+  },
+  {
+    path: '/UserDelete',
+    name: 'UserDelete',
+    component: UserDelete
+  }
 ]
 
 const router = createRouter({

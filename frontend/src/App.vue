@@ -18,7 +18,12 @@ const route = useRoute()
 const showHeader = computed(() => route.path !== '/login')
 </script>
 
-<style scoped>
+<style>
+body {
+  background-color: #f8fafc;
+  margin: 0;
+}
+
 .main-content {
   padding-top: 64px; /* ヘッダー分の余白 */
 }
