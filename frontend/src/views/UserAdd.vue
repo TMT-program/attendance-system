@@ -24,7 +24,7 @@ interface AddUserResponse {
 
 const addUser = async () => {
   try {
-    const res = await axios.post<AddUserResponse>('http://localhost:3000/api/users', {
+    const res = await axios.post<AddUserResponse>('${API_BASE_URL}/api/users', {
       email: newEmail.value,
       password: newPassword.value,
       displayName: newEmail.value.split('@')[0]

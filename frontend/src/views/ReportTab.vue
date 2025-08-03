@@ -133,7 +133,7 @@ const computeTotalWorkTime = () => {
 const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
   try {
-    const res = await axios.get('http://localhost:3000/api/attendance', {
+    const res = await axios.get('${API_BASE_URL}/api/attendance', {
       params: {
         uid: props.uid,
         year: year.value,
@@ -210,7 +210,7 @@ const submitReport = async (entry: RecordEntry) => {
   }
 
   try {
-    await axios.post('http://localhost:3000/api/attendance/report', {
+    await axios.post('${API_BASE_URL}/api/attendance/report', {
       uid: props.uid,
       date: entry.fullDate,
       start: entry.start,
@@ -227,7 +227,7 @@ const submitReport = async (entry: RecordEntry) => {
 
 const cancelSubmission = async (entry: RecordEntry) => {
   try {
-    await axios.post('http://localhost:3000/api/attendance/report', {
+    await axios.post('${API_BASE_URL}/api/attendance/report', {
       uid: props.uid,
       date: entry.fullDate,
       start: entry.start,

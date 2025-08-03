@@ -37,6 +37,7 @@
 <script setup lang="ts">
 import { ref, computed, defineProps, defineEmits } from 'vue'
 import axios from 'axios'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 interface User {
   uid: string
@@ -86,7 +87,7 @@ const searchUsers = () => {
 const toggleAdmin = async (user: User, event: Event) => {
   const isChecked = (event.target as HTMLInputElement).checked
   try {
-    await axios.patch(`http://localhost:3000/api/users/${user.uid}/role`, {
+    await axios.patch(`${API_BASE_URL}/api/users/${user.uid}/role`, {
       isAdmin: isChecked
     })
     user.isAdmin = isChecked

@@ -11,6 +11,7 @@
 
 <script setup lang="ts">
 import axios from 'axios'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
   uid: string
@@ -37,7 +38,7 @@ const clockIn = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
   try {
-    await axios.post(`http://localhost:3000/api/attendance/report`, {
+    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
       date,
       start: time,
@@ -54,7 +55,7 @@ const clockOut = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
   try {
-    await axios.post(`http://localhost:3000/api/attendance/report`, {
+    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
       date,
       end: time,
