@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
   user: { uid: string; displayName: string }
@@ -88,7 +89,7 @@ const records = ref<RecordEntry[]>([])
 
 const fetchRecords = async () => {
   try {
-    const res = await axios.get('${API_BASE_URL}/api/attendance', {
+    const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
       params: {
         uid: props.user.uid,
         year: year.value,
@@ -145,7 +146,7 @@ const nextMonth = () => {
 
 const approve = async (entry: RecordEntry) => {
   try {
-    await axios.post('${API_BASE_URL}/api/attendance/approve', {
+    await axios.post(`${API_BASE_URL}/api/attendance/approve`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
@@ -157,7 +158,7 @@ const approve = async (entry: RecordEntry) => {
 
 const reject = async (entry: RecordEntry) => {
   try {
-    await axios.post('${API_BASE_URL}/api/attendance/reject', {
+    await axios.post(`${API_BASE_URL}/api/attendance/reject`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
@@ -169,7 +170,7 @@ const reject = async (entry: RecordEntry) => {
 
 const revoke = async (entry: RecordEntry) => {
   try {
-    await axios.post('${API_BASE_URL}/api/attendance/revoke', {
+    await axios.post(`${API_BASE_URL}/api/attendance/revoke`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
