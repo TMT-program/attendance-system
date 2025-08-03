@@ -1,4 +1,3 @@
-// src/routes/attendance.ts
 import express, { Request, Response } from 'express'
 import { admin } from '../firebase'
 
@@ -87,14 +86,16 @@ router.post('/end', async (req: Request, res: Response) => {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const uid = req.query.uid as string
-    const year = req.query.year as string
-    const month = req.query.month as string
+    const year = req.query.year
+    const month = req.query.month
 
     if (!uid || !year || !month) {
       return res.status(400).json({ error: 'uid, year, month が必要です' })
     }
 
-    const yearMonth = `${year}-${month.padStart(2, '0')}`
+    const yearStr = String(year)
+    const monthStr = String(month).padStart(2, '0')
+    const yearMonth = `${yearStr}-${monthStr}`
 
     const docRef = admin
       .firestore()
@@ -110,14 +111,12 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const rawData = doc.data() || {}
-
     const responseData: Record<string, any> = {}
 
-    // MM-DD を YYYY-MM-DD に変換して返却する
     for (const dayKey in rawData) {
       const record = rawData[dayKey]
       const [m, d] = dayKey.split('-')
-      const fullDate = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+      const fullDate = `${yearStr}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
       responseData[fullDate] = {
         start: record.start || null,
@@ -137,7 +136,6 @@ router.get('/', async (req: Request, res: Response) => {
 // 勤務報告の保存（作業内容・ステータス・時刻）
 router.post('/report', async (req: Request, res: Response) => {
   try {
-    // 今は開発用として req.body.uid を一時的に使います（本番ではIDトークン検証推奨）
     const { uid, date, start, end, task, status } = req.body
 
     if (!uid || !date || !task || !status) {
@@ -154,7 +152,7 @@ router.post('/report', async (req: Request, res: Response) => {
     const day = String(dateObj.getDate()).padStart(2, '0')
 
     const yearMonth = `${year}-${month}`
-    const dayKey = `${month}-${day}` // MM-DD（例：08-03）
+    const dayKey = `${month}-${day}`
 
     const docRef = admin
       .firestore()
@@ -181,6 +179,5 @@ router.post('/report', async (req: Request, res: Response) => {
     res.status(500).json({ error: '勤務報告の保存に失敗しました' })
   }
 })
-
 
 export default router

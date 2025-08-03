@@ -36,7 +36,6 @@ const getCurrentDateString = () => {
 const clockIn = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
-  props.attendance.start = time
   try {
     await axios.post(`http://localhost:3000/api/attendance/report`, {
       uid: props.uid,
@@ -45,7 +44,7 @@ const clockIn = async () => {
       task: '-',
       status: '未承認'
     })
-    props.onUpdate()
+    props.onUpdate() // ← propsは直接変更せず親に任せる
   } catch (e) {
     console.error('出勤登録失敗', e)
   }
@@ -54,7 +53,6 @@ const clockIn = async () => {
 const clockOut = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
-  props.attendance.end = time
   try {
     await axios.post(`http://localhost:3000/api/attendance/report`, {
       uid: props.uid,
@@ -63,7 +61,7 @@ const clockOut = async () => {
       task: '-',
       status: '未承認'
     })
-    props.onUpdate()
+    props.onUpdate() // ← propsは直接変更せず親に任せる
   } catch (e) {
     console.error('退勤登録失敗', e)
   }

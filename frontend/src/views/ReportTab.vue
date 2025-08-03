@@ -133,7 +133,7 @@ const computeTotalWorkTime = () => {
 const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
   try {
-    const res = await axios.get(`http://localhost:3000/api/attendance`, {
+    const res = await axios.get('http://localhost:3000/api/attendance', {
       params: {
         uid: props.uid,
         year: year.value,
@@ -225,8 +225,21 @@ const submitReport = async (entry: RecordEntry) => {
   }
 }
 
-const cancelSubmission = (entry: RecordEntry) => {
-  entry.status = '未承認'
+const cancelSubmission = async (entry: RecordEntry) => {
+  try {
+    await axios.post('http://localhost:3000/api/attendance/report', {
+      uid: props.uid,
+      date: entry.fullDate,
+      start: entry.start,
+      end: entry.end,
+      task: entry.task,
+      status: '未承認'
+    })
+    entry.status = '未承認'
+  } catch (error) {
+    console.error('勤務報告の取消に失敗しました:', error)
+    alert('取消に失敗しました')
+  }
 }
 
 const getStatusClass = (status: string, dayIndex: number) => {

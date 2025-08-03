@@ -1,19 +1,25 @@
+<!-- AttendanceReport.vue -->
 <script setup lang="ts">
 import { Clock4 } from 'lucide-vue-next'
 import { ref, onMounted, computed } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../firebase'
+import { auth, db } from '../firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import axios from 'axios'
 
 import AttendanceTab from './AttendanceTab.vue'
 import ReportTab from './ReportTab.vue'
+import ConfirmUserList from './ConfirmUserList.vue'
+import ConfirmReportTab from './ConfirmReportTab.vue'
 
-type TabType = '勤怠' | '勤務実績'
-const tabs: TabType[] = ['勤怠', '勤務実績']
+type TabType = '勤怠' | '勤務実績' | '勤務実績確認'
+const tabs = ref<TabType[]>(['勤怠', '勤務実績'])
 const currentTab = ref<TabType>('勤怠')
 
 const uid = ref<string | null>(null)
 const attendance = ref<{ start?: string; end?: string }>({})
+const isAdmin = ref(false)
+const selectedUser = ref<any | null>(null)
 
 const year = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
@@ -29,17 +35,38 @@ interface RecordEntry {
 
 const records = ref<RecordEntry[]>([])
 
-// JSTに変換して "HH:MM" 表示する関数
-const toJSTTimeString = (iso: string): string => {
-  const date = new Date(iso)
+const toJSTTimeString = (input: any): string => {
+  if (typeof input === 'string' && /^\d{2}:\d{2}$/.test(input)) {
+    return input
+  }
+  if (typeof input !== 'string' || !input.includes('T')) {
+    return ''
+  }
+  const date = new Date(input)
+  if (isNaN(date.getTime())) return ''
   date.setHours(date.getHours())
   return date.toTimeString().slice(0, 5)
 }
 
+const getCurrentDateString = (): string => {
+  const now = new Date()
+  now.setHours(now.getHours() + 9)
+  return now.toISOString().slice(0, 10)
+}
+
 onMounted(() => {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
       uid.value = user.uid
+
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      if (userDoc.exists()) {
+        isAdmin.value = !!userDoc.data().isAdmin
+        if (isAdmin.value && !tabs.value.includes('勤務実績確認')) {
+          tabs.value.push('勤務実績確認')
+        }
+      }
+
       fetchRecords()
     }
   })
@@ -71,28 +98,22 @@ const fetchRecords = async () => {
         fullDate,
         day: dayNames[dayIndex],
         dayIndex,
-        start: data[fullDate]?.start ? toJSTTimeString(data[fullDate].start) : undefined,
-        end: data[fullDate]?.end ? toJSTTimeString(data[fullDate].end) : undefined,
+        start: toJSTTimeString(data[fullDate]?.start),
+        end: toJSTTimeString(data[fullDate]?.end),
       })
     }
     records.value = result
 
-    // 当日出勤情報もセット
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getCurrentDateString()
     const todayData = data[todayStr]
-    if (todayData) {
-      attendance.value.start = todayData.start ? toJSTTimeString(todayData.start) : undefined
-      attendance.value.end = todayData.end ? toJSTTimeString(todayData.end) : undefined
+    attendance.value = {
+      start: toJSTTimeString(todayData?.start),
+      end: toJSTTimeString(todayData?.end),
     }
   } catch (e) {
     console.error('勤務実績取得失敗', e)
   }
 }
-
-const todayStr = new Date().toISOString().slice(0, 10)
-const todayRecord = computed(() =>
-  records.value.find((r) => r.fullDate === todayStr)
-)
 
 const prevMonth = () => {
   if (month.value === 1) {
@@ -130,7 +151,7 @@ const nextMonth = () => {
           v-for="tab in tabs"
           :key="tab"
           :class="['tab-button', { active: currentTab === tab }]"
-          @click="currentTab = tab"
+          @click="() => { currentTab = tab; selectedUser = null }"
         >
           {{ tab }}
         </button>
@@ -141,9 +162,9 @@ const nextMonth = () => {
           v-if="currentTab === '勤怠'"
           :uid="uid"
           :attendance="attendance"
-          :todayRecord="todayRecord"
           :onUpdate="fetchRecords"
         />
+
         <ReportTab
           v-if="currentTab === '勤務実績'"
           :uid="uid"
@@ -152,6 +173,17 @@ const nextMonth = () => {
           :records="records"
           @prevMonth="prevMonth"
           @nextMonth="nextMonth"
+        />
+
+        <ConfirmUserList
+          v-if="currentTab === '勤務実績確認' && isAdmin && !selectedUser"
+          @select-user="(user) => selectedUser = user"
+        />
+
+        <ConfirmReportTab
+          v-if="currentTab === '勤務実績確認' && isAdmin && selectedUser"
+          :user="selectedUser"
+          @back="() => selectedUser = null"
         />
       </div>
     </div>
@@ -165,8 +197,6 @@ const nextMonth = () => {
   margin: 0 auto;
   font-family: 'Segoe UI', sans-serif;
 }
-
-/* タイトル */
 .header {
   display: flex;
   align-items: center;
@@ -184,8 +214,6 @@ const nextMonth = () => {
   font-weight: 700;
   color: #1e3a8a;
 }
-
-/* タブ */
 .tab-menu {
   display: flex;
   justify-content: center;
@@ -218,7 +246,6 @@ const nextMonth = () => {
   background-color: #2563eb;
   border-radius: 2px;
 }
-
 .tab-content {
   min-height: 300px;
 }
