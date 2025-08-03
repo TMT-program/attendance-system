@@ -14,7 +14,9 @@
         <tr v-for="user in paginatedUsers" :key="user.uid">
           <td>{{ user.displayName || '-' }}</td>
           <td>{{ user.email }}</td>
-          <td><button @click="selectUser(user)">確認</button></td>
+          <td>
+            <button class="submit-button" @click="selectUser(user)">確認</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -101,8 +103,21 @@ onMounted(fetchUsers)
   gap: 1rem;
   margin-bottom: 2rem;
 }
+
 button {
   padding: 0.4rem 1rem;
   font-size: 0.9rem;
+}
+
+/* 勤務実績タブの提出ボタン風のスタイルを統一 */
+.submit-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.submit-button:hover {
+  background-color: #1e40af;
 }
 </style>

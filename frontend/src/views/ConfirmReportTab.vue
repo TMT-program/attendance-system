@@ -1,11 +1,17 @@
 <template>
   <div class="confirm-report-tab">
-    <h3>{{ user.displayName }} さんの勤務実績</h3>
+    <div class="summary-table">
+      <h3>{{ user.displayName }} さんの勤務実績</h3>
+    </div>
 
-    <div class="month-nav">
-      <button @click="prevMonth">←</button>
+    <div class="month-selector">
+      <button class="nav-button" @click="prevMonth">←</button>
       <span>{{ year }}年{{ month }}月</span>
-      <button @click="nextMonth">→</button>
+      <button class="nav-button" @click="nextMonth">→</button>
+    </div>
+
+    <div class="button-group">
+      <button class="csv-button" @click="downloadCSV">CSV出力</button>
     </div>
 
     <table class="record-table">
@@ -33,8 +39,24 @@
           <td>{{ entry.task || '-' }}</td>
           <td>{{ entry.status }}</td>
           <td>
-            <button v-if="entry.status === '承認待'" @click="approve(entry)">承認</button>
-            <span v-else>-</span>
+            <div class="action-buttons">
+              <button
+                v-if="entry.status === '承認待'"
+                class="submit-button"
+                @click="approve(entry)"
+              >承認</button>
+              <button
+                v-if="entry.status === '承認待'"
+                class="reject-button"
+                @click="reject(entry)"
+              >却下</button>
+              <button
+                v-if="entry.status === '承認済'"
+                class="cancel-button"
+                @click="revoke(entry)"
+              >取消</button>
+              <span v-if="entry.status === '未承認'">-</span>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -122,8 +144,69 @@ const nextMonth = () => {
 }
 
 const approve = async (entry: RecordEntry) => {
-  console.log('承認クリック: ', entry.fullDate)
-  // 将来的なFirestore更新処理をここに実装予定
+  try {
+    await axios.post('http://localhost:3000/api/attendance/approve', {
+      uid: props.user.uid,
+      date: entry.fullDate,
+    })
+    fetchRecords()
+  } catch (error) {
+    console.error('承認処理エラー:', error)
+  }
+}
+
+const reject = async (entry: RecordEntry) => {
+  try {
+    await axios.post('http://localhost:3000/api/attendance/reject', {
+      uid: props.user.uid,
+      date: entry.fullDate,
+    })
+    fetchRecords()
+  } catch (error) {
+    console.error('却下処理エラー:', error)
+  }
+}
+
+const revoke = async (entry: RecordEntry) => {
+  try {
+    await axios.post('http://localhost:3000/api/attendance/revoke', {
+      uid: props.user.uid,
+      date: entry.fullDate,
+    })
+    fetchRecords()
+  } catch (error) {
+    console.error('取消処理エラー:', error)
+  }
+}
+
+const downloadCSV = () => {
+  const headers = ['日付', '曜日', '出勤', '退勤', '作業内容', '状態']
+  const rows = records.value.map(r => [
+    r.date,
+    r.day,
+    r.start || '-',
+    r.end || '-',
+    r.task || '-',
+    r.status,
+  ])
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(val => `"${val}"`).join(','))
+    .join('\r\n')
+
+  // BOM付きUTF-8でエクセル対応
+  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+
+  const username = props.user.displayName.replace(/\s+/g, '_')
+  const fileName = `勤務実績_${username}_${year.value}_${String(month.value).padStart(2, '0')}.csv`
+  link.setAttribute('download', fileName)
+
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 const getStatusClass = (status: string) => {
@@ -138,22 +221,36 @@ watch([year, month], fetchRecords)
 
 <style scoped>
 .confirm-report-tab {
-  margin-top: 2rem;
+  padding: 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', sans-serif;
 }
-.month-nav {
+.summary-table {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.month-selector {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 1rem;
+  margin-bottom: 1rem;
+}
+.button-group {
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: 1rem;
 }
 .record-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.95rem;
 }
 .record-table th,
 .record-table td {
   border: 1px solid #ccc;
-  padding: 0.5rem;
+  padding: 0.6rem;
   text-align: center;
 }
 .status-approved {
@@ -161,5 +258,65 @@ watch([year, month], fetchRecords)
 }
 .status-pending {
   background-color: #fff9c4;
+}
+.submit-button,
+.reject-button,
+.cancel-button {
+  padding: 0.4rem 0.8rem;
+  margin: 0 0.2rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.submit-button {
+  background-color: #2563eb;
+  color: white;
+}
+.submit-button:hover {
+  background-color: #1d4ed8;
+}
+.reject-button {
+  background-color: #f87171;
+  color: white;
+}
+.reject-button:hover {
+  background-color: #ef4444;
+}
+.cancel-button {
+  background-color: #fbbf24;
+  color: black;
+}
+.cancel-button:hover {
+  background-color: #f59e0b;
+}
+.csv-button {
+  padding: 0.4rem 1rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.csv-button:hover {
+  background-color: #059669;
+}
+.nav-button {
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  background-color: #e5e7eb;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 </style>

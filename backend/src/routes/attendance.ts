@@ -180,4 +180,133 @@ router.post('/report', async (req: Request, res: Response) => {
   }
 })
 
+// 勤務報告の「承認」処理（status: 承認済）
+router.post('/approve', async (req: Request, res: Response) => {
+  try {
+    const { uid, date } = req.body
+    if (!uid || !date) {
+      return res.status(400).json({ error: 'uid と date は必須です' })
+    }
+
+    const dateObj = new Date(date)
+    if (isNaN(dateObj.getTime())) {
+      return res.status(400).json({ error: '無効な日付です' })
+    }
+
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+
+    const yearMonth = `${year}-${month}`
+    const dayKey = `${month}-${day}`
+
+    const docRef = admin
+      .firestore()
+      .collection('attendanceRecords')
+      .doc(uid)
+      .collection('records')
+      .doc(yearMonth)
+
+    await docRef.set(
+      {
+        [dayKey]: {
+          status: '承認済',
+        },
+      },
+      { merge: true }
+    )
+
+    res.status(200).json({ message: '勤務報告を承認しました' })
+  } catch (error) {
+    console.error('勤務報告承認エラー:', error)
+    res.status(500).json({ error: '勤務報告の承認に失敗しました' })
+  }
+})
+
+// 勤務報告の「却下」処理（status: 未承認）
+router.post('/reject', async (req: Request, res: Response) => {
+  try {
+    const { uid, date } = req.body
+    if (!uid || !date) {
+      return res.status(400).json({ error: 'uid と date は必須です' })
+    }
+
+    const dateObj = new Date(date)
+    if (isNaN(dateObj.getTime())) {
+      return res.status(400).json({ error: '無効な日付です' })
+    }
+
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+
+    const yearMonth = `${year}-${month}`
+    const dayKey = `${month}-${day}`
+
+    const docRef = admin
+      .firestore()
+      .collection('attendanceRecords')
+      .doc(uid)
+      .collection('records')
+      .doc(yearMonth)
+
+    await docRef.set(
+      {
+        [dayKey]: {
+          status: '未承認',
+        },
+      },
+      { merge: true }
+    )
+
+    res.status(200).json({ message: '勤務報告を却下しました' })
+  } catch (error) {
+    console.error('勤務報告却下エラー:', error)
+    res.status(500).json({ error: '勤務報告の却下に失敗しました' })
+  }
+})
+
+// 勤務報告の「取消」処理（status: 承認待）
+router.post('/revoke', async (req: Request, res: Response) => {
+  try {
+    const { uid, date } = req.body
+    if (!uid || !date) {
+      return res.status(400).json({ error: 'uid と date は必須です' })
+    }
+
+    const dateObj = new Date(date)
+    if (isNaN(dateObj.getTime())) {
+      return res.status(400).json({ error: '無効な日付です' })
+    }
+
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+
+    const yearMonth = `${year}-${month}`
+    const dayKey = `${month}-${day}`
+
+    const docRef = admin
+      .firestore()
+      .collection('attendanceRecords')
+      .doc(uid)
+      .collection('records')
+      .doc(yearMonth)
+
+    await docRef.set(
+      {
+        [dayKey]: {
+          status: '承認待',
+        },
+      },
+      { merge: true }
+    )
+
+    res.status(200).json({ message: '勤務報告の承認を取り消しました' })
+  } catch (error) {
+    console.error('勤務報告取消エラー:', error)
+    res.status(500).json({ error: '勤務報告の取消に失敗しました' })
+  }
+})
+
 export default router
