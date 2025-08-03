@@ -44,7 +44,7 @@ function goBackToMenu() {
 
 async function fetchUsers() {
   try {
-    const res = await axios.get<User[]>('http://localhost:3000/api/users')
+    const res = await axios.get<User[]>('${API_BASE_URL}/api/users')
     users.value = res.data
   } catch (error) {
     console.error('ユーザー取得失敗:', error)

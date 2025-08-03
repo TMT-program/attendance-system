@@ -78,7 +78,7 @@ const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
 
   try {
-    const res = await axios.get('http://localhost:3000/api/attendance', {
+    const res = await axios.get('${API_BASE_URL}/api/attendance', {
       params: {
         uid: uid.value,
         year: year.value,

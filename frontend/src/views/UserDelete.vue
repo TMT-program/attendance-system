@@ -55,6 +55,7 @@
 import { ref, computed, defineProps, defineEmits } from 'vue'
 import axios from 'axios'
 import type { User } from '../components/types'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
   users: User[]
@@ -92,7 +93,7 @@ const selectUser = (user: User) => {
 const deleteUser = async () => {
   if (!selectedUser.value) return
   try {
-    await axios.delete(`http://localhost:3000/api/users/${selectedUser.value.uid}`)
+    await axios.delete(`${API_BASE_URL}/api/users/${selectedUser.value.uid}`)
     deleteMessage.value = `${selectedUser.value.displayName} を削除しました`
     selectedUser.value = null
     showConfirm.value = false
