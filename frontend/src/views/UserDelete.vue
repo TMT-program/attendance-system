@@ -2,49 +2,53 @@
   <div class="user-section">
     <h2 class="section-title">🗑️ ユーザー削除</h2>
 
-    <table class="user-table">
-      <thead>
-        <tr>
-          <th>名前</th>
-          <th>メールアドレス</th>
-          <th>管理者権限</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="user in paginatedUsers"
-          :key="user.uid"
-          :class="{ selected: selectedUser?.uid === user.uid }"
-          @click="selectUser(user)"
-        >
-          <td>{{ user.displayName || '(名前なし)' }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
-        </tr>
-        <tr v-if="paginatedUsers.length === 0">
-          <td colspan="3" class="no-data">該当するユーザーがいません</td>
-        </tr>
-      </tbody>
-    </table>
+    <LoadingSpinner v-if="isLoading" />
 
-    <div class="pagination">
-      <button @click="prevPage" :disabled="page === 1">←</button>
-      <span>{{ page }} / {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="page === totalPages">→</button>
-    </div>
+    <div v-else>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>名前</th>
+            <th>メールアドレス</th>
+            <th>管理者権限</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="user in paginatedUsers"
+            :key="user.uid"
+            :class="{ selected: selectedUser?.uid === user.uid }"
+            @click="selectUser(user)"
+          >
+            <td>{{ user.displayName || '(名前なし)' }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
+          </tr>
+          <tr v-if="paginatedUsers.length === 0">
+            <td colspan="3" class="no-data">該当するユーザーがいません</td>
+          </tr>
+        </tbody>
+      </table>
 
-    <div v-if="selectedUser" class="confirm-box">
-      <button class="delete-button" @click="showConfirm = true">選択したユーザーを削除</button>
-    </div>
+      <div class="pagination">
+        <button @click="prevPage" :disabled="page === 1">←</button>
+        <span>{{ page }} / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="page === totalPages">→</button>
+      </div>
 
-    <p v-if="deleteMessage">{{ deleteMessage }}</p>
+      <div v-if="selectedUser" class="confirm-box">
+        <button class="delete-button" @click="showConfirm = true">選択したユーザーを削除</button>
+      </div>
 
-    <div v-if="showConfirm" class="modal-overlay">
-      <div class="modal">
-        <p>「{{ selectedUser?.displayName }}」を削除しますか？</p>
-        <div class="modal-actions">
-          <button class="delete-button" @click="deleteUser">削除</button>
-          <button @click="showConfirm = false">キャンセル</button>
+      <p v-if="deleteMessage">{{ deleteMessage }}</p>
+
+      <div v-if="showConfirm" class="modal-overlay">
+        <div class="modal">
+          <p>「{{ selectedUser?.displayName }}」を削除しますか？</p>
+          <div class="modal-actions">
+            <button class="delete-button" @click="deleteUser">削除</button>
+            <button @click="showConfirm = false">キャンセル</button>
+          </div>
         </div>
       </div>
     </div>
@@ -55,6 +59,7 @@
 import { ref, computed, defineProps, defineEmits } from 'vue'
 import axios from 'axios'
 import type { User } from '../components/types'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
@@ -69,6 +74,7 @@ const emit = defineEmits<{
 const selectedUser = ref<User | null>(null)
 const deleteMessage = ref('')
 const showConfirm = ref(false)
+const isLoading = ref(false)
 
 const page = ref(1)
 const pageSize = 10
@@ -92,6 +98,7 @@ const selectUser = (user: User) => {
 
 const deleteUser = async () => {
   if (!selectedUser.value) return
+  isLoading.value = true
   try {
     await axios.delete(`${API_BASE_URL}/api/users/${selectedUser.value.uid}`)
     deleteMessage.value = `${selectedUser.value.displayName} を削除しました`
@@ -102,9 +109,12 @@ const deleteUser = async () => {
     console.error('削除失敗:', error)
     deleteMessage.value = 'ユーザー削除に失敗しました'
     showConfirm.value = false
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
+
 
 <style scoped>
 .user-section {

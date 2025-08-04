@@ -5,38 +5,44 @@
       <input type="text" v-model="searchKeyword" placeholder="検索ワードを入力" />
       <button @click="searchUsers">検索</button>
     </div>
-    <table class="user-table">
-      <thead>
-        <tr>
-          <th>名前</th>
-          <th>メールアドレス</th>
-          <th>管理者権限</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in paginatedUsers" :key="user.uid">
-          <td>{{ user.displayName || '(名前なし)' }}</td>
-          <td>{{ user.email }}</td>
-          <td>
-            <input type="checkbox" :checked="user.isAdmin" @change="toggleAdmin(user, $event)" />
-          </td>
-        </tr>
-        <tr v-if="paginatedUsers.length === 0">
-          <td colspan="3" class="no-data">該当するユーザーがいません</td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="pagination">
-      <button @click="prevPage" :disabled="page === 1">←</button>
-      <span>{{ page }} / {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="page === totalPages">→</button>
+
+    <LoadingSpinner v-if="isLoading" />
+
+    <div v-else>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>名前</th>
+            <th>メールアドレス</th>
+            <th>管理者権限</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in paginatedUsers" :key="user.uid">
+            <td>{{ user.displayName || '(名前なし)' }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <input type="checkbox" :checked="user.isAdmin" @change="toggleAdmin(user, $event)" />
+            </td>
+          </tr>
+          <tr v-if="paginatedUsers.length === 0">
+            <td colspan="3" class="no-data">該当するユーザーがいません</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button @click="prevPage" :disabled="page === 1">←</button>
+        <span>{{ page }} / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="page === totalPages">→</button>
+      </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, defineProps, defineEmits } from 'vue'
 import axios from 'axios'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 interface User {
@@ -55,6 +61,7 @@ const emit = defineEmits(['refreshUsers', 'goBack'])
 const searchKeyword = ref('')
 const page = ref(1)
 const pageSize = 10
+const isLoading = ref(false)
 
 const filteredUsers = computed(() =>
   props.users.filter(user =>
@@ -86,6 +93,7 @@ const searchUsers = () => {
 
 const toggleAdmin = async (user: User, event: Event) => {
   const isChecked = (event.target as HTMLInputElement).checked
+  isLoading.value = true
   try {
     await axios.patch(`${API_BASE_URL}/api/users/${user.uid}/role`, {
       isAdmin: isChecked
@@ -95,6 +103,8 @@ const toggleAdmin = async (user: User, event: Event) => {
   } catch (error) {
     console.error('管理者権限変更失敗:', error)
     ;(event.target as HTMLInputElement).checked = !isChecked
+  } finally {
+    isLoading.value = false
   }
 }
 </script>

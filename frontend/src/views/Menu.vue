@@ -1,7 +1,8 @@
 <template>
   <div class="menu-container">
     <h1 class="title">メニュー</h1>
-    <div class="menu-grid">
+    <LoadingSpinner v-if="isLoading" />
+    <div class="menu-grid" v-else>
       <button
         v-if="isAdmin"
         class="menu-card"
@@ -31,9 +32,11 @@ import { User, ClipboardEdit, Megaphone } from 'lucide-vue-next'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const router = useRouter()
 const isAdmin = ref(false)
+const isLoading = ref(true)
 
 const db = getFirestore()
 
@@ -46,6 +49,7 @@ onMounted(() => {
         isAdmin.value = data.isAdmin === true
       }
     }
+    isLoading.value = false
   })
 })
 
