@@ -1,17 +1,24 @@
 <template>
   <div class="tab-panel">
     <div class="actions">
-      <button @click="clockIn" :disabled="!!attendance.start">出勤</button>
-      <button @click="clockOut" :disabled="!attendance.start || !!attendance.end">退勤</button>
+      <button @click="clockIn" :disabled="!!attendance.start || isLoading">出勤</button>
+      <button @click="clockOut" :disabled="!attendance.start || !!attendance.end || isLoading">退勤</button>
     </div>
-    <div v-if="attendance.start" class="record">✅ {{ attendance.start }} に出勤しました</div>
-    <div v-if="attendance.end" class="record">✅ {{ attendance.end }} に退勤しました</div>
+    <LoadingSpinner v-if="isLoading" />
+    <div v-else>
+      <div v-if="attendance.start" class="record">✅ {{ attendance.start }} に出勤しました</div>
+      <div v-if="attendance.end" class="record">✅ {{ attendance.end }} に退勤しました</div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import axios from 'axios'
+import { ref } from 'vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const isLoading = ref(false)
 
 const props = defineProps<{
   uid: string
@@ -19,7 +26,6 @@ const props = defineProps<{
   onUpdate: () => void
 }>()
 
-// 現在時刻を "HH:MM" 形式で返す関数
 const getCurrentTimeString = () => {
   const now = new Date()
   const hours = String(now.getHours()).padStart(2, '0')
@@ -27,16 +33,16 @@ const getCurrentTimeString = () => {
   return `${hours}:${minutes}`
 }
 
-// 現在日付（JST）を "YYYY-MM-DD" 形式で返す関数
 const getCurrentDateString = () => {
   const now = new Date()
-  now.setHours(now.getHours() + 9) // JST補正
+  now.setHours(now.getHours() + 9)
   return now.toISOString().slice(0, 10)
 }
 
 const clockIn = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
+  isLoading.value = true
   try {
     await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
@@ -45,15 +51,18 @@ const clockIn = async () => {
       task: '-',
       status: '未承認'
     })
-    props.onUpdate() // ← propsは直接変更せず親に任せる
+    props.onUpdate()
   } catch (e) {
     console.error('出勤登録失敗', e)
+  } finally {
+    isLoading.value = false
   }
 }
 
 const clockOut = async () => {
   const time = getCurrentTimeString()
   const date = getCurrentDateString()
+  isLoading.value = true
   try {
     await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
@@ -62,9 +71,11 @@ const clockOut = async () => {
       task: '-',
       status: '未承認'
     })
-    props.onUpdate() // ← propsは直接変更せず親に任せる
+    props.onUpdate()
   } catch (e) {
     console.error('退勤登録失敗', e)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>

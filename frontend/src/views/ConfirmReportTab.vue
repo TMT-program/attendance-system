@@ -14,7 +14,9 @@
       <button class="csv-button" @click="downloadCSV">CSV出力</button>
     </div>
 
-    <table class="record-table">
+    <LoadingSpinner v-if="isLoading" />
+
+    <table class="record-table" v-else>
       <thead>
         <tr>
           <th>日付</th>
@@ -67,6 +69,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
@@ -86,8 +89,10 @@ interface RecordEntry {
 const year = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
 const records = ref<RecordEntry[]>([])
+const isLoading = ref(false)
 
 const fetchRecords = async () => {
+  isLoading.value = true
   try {
     const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
       params: {
@@ -121,6 +126,8 @@ const fetchRecords = async () => {
     records.value = result
   } catch (e) {
     console.error('勤務報告取得失敗', e)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -146,37 +153,46 @@ const nextMonth = () => {
 
 const approve = async (entry: RecordEntry) => {
   try {
+    isLoading.value = true
     await axios.post(`${API_BASE_URL}/api/attendance/approve`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
-    fetchRecords()
+    await fetchRecords()
   } catch (error) {
     console.error('承認処理エラー:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
 const reject = async (entry: RecordEntry) => {
   try {
+    isLoading.value = true
     await axios.post(`${API_BASE_URL}/api/attendance/reject`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
-    fetchRecords()
+    await fetchRecords()
   } catch (error) {
     console.error('却下処理エラー:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
 const revoke = async (entry: RecordEntry) => {
   try {
+    isLoading.value = true
     await axios.post(`${API_BASE_URL}/api/attendance/revoke`, {
       uid: props.user.uid,
       date: entry.fullDate,
     })
-    fetchRecords()
+    await fetchRecords()
   } catch (error) {
     console.error('取消処理エラー:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -194,7 +210,6 @@ const downloadCSV = () => {
     .map(row => row.map(val => `"${val}"`).join(','))
     .join('\r\n')
 
-  // BOM付きUTF-8でエクセル対応
   const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -219,6 +234,7 @@ const getStatusClass = (status: string) => {
 onMounted(fetchRecords)
 watch([year, month], fetchRecords)
 </script>
+
 
 <style scoped>
 .confirm-report-tab {

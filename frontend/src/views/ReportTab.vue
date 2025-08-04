@@ -24,7 +24,9 @@
         <button @click="nextMonth">→</button>
       </div>
 
-      <table class="record-table">
+      <LoadingSpinner v-if="isLoading" />
+
+      <table class="record-table" v-else>
         <thead>
           <tr>
             <th>状態</th>
@@ -82,6 +84,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const props = defineProps<{ uid: string }>()
@@ -106,6 +109,7 @@ interface RecordEntry {
 
 const records = ref<RecordEntry[]>([])
 const totalWorkTime = ref('00:00')
+const isLoading = ref(false)
 
 const calculateWorkDuration = (startStr?: string, endStr?: string): string | undefined => {
   if (!startStr || !endStr) return undefined
@@ -133,6 +137,7 @@ const computeTotalWorkTime = () => {
 
 const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
+  isLoading.value = true
   try {
     const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
       params: {
@@ -172,6 +177,8 @@ const fetchRecords = async () => {
     computeTotalWorkTime()
   } catch (e) {
     console.error('勤務実績取得失敗', e)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -249,6 +256,7 @@ const getStatusClass = (status: string, dayIndex: number) => {
   return isWeekend(dayIndex) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
 }
 </script>
+
 
 <style scoped>
 .report-container {
