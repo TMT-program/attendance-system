@@ -24,10 +24,13 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  /* overflow: hidden; ← これを削除してスクロールを有効に */
 }
 
 .main-content {
   padding-top: 64px; /* ヘッダー分の余白 */
+  min-height: calc(100vh - 64px);
+  box-sizing: border-box;
+  overflow-x: hidden; /* 横スクロールは防止 */
 }
 </style>
