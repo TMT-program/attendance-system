@@ -8,7 +8,7 @@
 
     <LoadingSpinner v-if="isLoading" />
 
-    <div v-else>
+    <div v-else class="table-wrapper">
       <table class="user-table">
         <thead>
           <tr>
@@ -30,6 +30,7 @@
           </tr>
         </tbody>
       </table>
+
       <div class="pagination">
         <button @click="prevPage" :disabled="page === 1">←</button>
         <span>{{ page }} / {{ totalPages }}</span>
@@ -52,10 +53,7 @@ interface User {
   isAdmin: boolean
 }
 
-const props = defineProps<{
-  users: User[]
-}>()
-
+const props = defineProps<{ users: User[] }>()
 const emit = defineEmits(['refreshUsers', 'goBack'])
 
 const searchKeyword = ref('')
@@ -114,19 +112,32 @@ const toggleAdmin = async (user: User, event: Event) => {
   background-color: #f8fafc;
   padding: 1rem;
   border-radius: 8px;
+  overflow-x: auto;
 }
+
 .section-title {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
   color: #1e3a8a;
+  white-space: nowrap;
 }
+
+.search-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 .search-box input {
   padding: 0.5rem;
-  width: 220px;
-  margin-right: 0.5rem;
+  flex: 1;
+  min-width: 180px;
+  max-width: 300px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
 .search-box button {
   padding: 0.5rem 1rem;
   background-color: #1e3a8a;
@@ -135,19 +146,35 @@ const toggleAdmin = async (user: User, event: Event) => {
   border-radius: 6px;
   cursor: pointer;
 }
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
 .user-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
+  min-width: 480px; /* スマホで崩れないよう最小幅を確保 */
 }
-.user-table th, .user-table td {
+
+.user-table th,
+.user-table td {
   padding: 12px;
   border-bottom: 1px solid #ccc;
   text-align: left;
+  white-space: nowrap;
 }
+
 .user-table thead {
   background-color: #f0f4ff;
 }
+
+.no-data {
+  text-align: center;
+  color: #999;
+}
+
 .pagination {
   margin: 1rem 0;
   display: flex;
@@ -155,16 +182,24 @@ const toggleAdmin = async (user: User, event: Event) => {
   align-items: center;
   gap: 1rem;
 }
-.back-button {
-  background-color: #1e3a8a;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  margin-top: 1rem;
-  cursor: pointer;
-}
-.back-button:hover {
-  background-color: #3b82f6;
+
+@media (max-width: 600px) {
+  .section-title {
+    font-size: 1.4rem;
+  }
+
+  .search-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box input,
+  .search-box button {
+    width: 100%;
+  }
+
+  .pagination span {
+    font-size: 0.9rem;
+  }
 }
 </style>
