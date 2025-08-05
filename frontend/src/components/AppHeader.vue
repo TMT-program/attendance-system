@@ -1,7 +1,13 @@
 <template>
   <header class="app-header">
     <div class="left-section">
-      <button v-if="showBackButton" @click="props.onBack ? props.onBack() : goBack()" class="back-button">← 戻る</button>
+      <button
+        v-if="showBackButton"
+        @click="props.onBack ? props.onBack() : goBack()"
+        class="back-button"
+      >
+        ← 戻る
+      </button>
       <div class="title">
         <BadgeCheck class="icon" /> 勤怠管理システム
       </div>
@@ -73,7 +79,7 @@ const goBack = () => {
   border-bottom: 2px solid #dc2626;
   padding: 0 1.5rem;
   box-sizing: border-box;
-  overflow: hidden; /* はみ出し防止 */
+  overflow-x: hidden;
 }
 
 .left-section {
@@ -90,6 +96,7 @@ const goBack = () => {
   margin-right: 1rem;
   padding: 0;
   outline: none;
+  white-space: nowrap; /* ← 折り返さない */
 }
 
 .back-button:hover {
@@ -102,31 +109,30 @@ const goBack = () => {
   color: #dc2626;
   display: flex;
   align-items: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; /* ← タイトルも折り返さない */
 }
 
 .title .icon {
   width: 1.5rem;
   height: 1.5rem;
   margin-right: 0.4rem;
+  flex-shrink: 0;
 }
 
 .user-section {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  max-width: 50%;
+  white-space: nowrap; /* ← 折り返さない */
+  overflow: hidden;
 }
 
 .username {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-weight: 600;
   color: #1e3a8a;
-  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 
 .user-section button {
@@ -147,15 +153,19 @@ const goBack = () => {
   background-color: #b91c1c;
 }
 
-/* スマホ対応 */
-@media (max-width: 600px) {
+/* スマホ向け */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0 1rem;
+  }
+
   .title {
     font-size: 1.1rem;
   }
 
   .username {
-    font-size: 0.8rem;
     max-width: 100px;
+    font-size: 0.8rem;
   }
 
   .user-section button {
