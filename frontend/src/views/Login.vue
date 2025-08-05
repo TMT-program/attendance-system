@@ -68,12 +68,15 @@ async function handleRegister() {
 <style scoped>
 .login-wrapper {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  min-height: 100dvh; /* ← ここが一番大事 */
-  padding: 1rem 1rem;
-  box-sizing: border-box;
+  min-height: 100dvh;
+  padding-top: -30vh;
+  padding-left: 1rem;
+  padding-right: 1rem;
   background-color: #f8fafc;
+  box-sizing: border-box;
 }
 
 .login-card {
@@ -82,12 +85,13 @@ async function handleRegister() {
   border-radius: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
-  width: 400px;
+  max-width: 420px;
   border: 1px solid #d1d5db;
   box-sizing: border-box;
   max-height: 100%;
   overflow: auto;
   margin: 0 auto;
+  
 }
 
 .login-title {
