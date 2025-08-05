@@ -15,7 +15,6 @@
 
         <button type="submit" :disabled="loading">{{ loading ? 'ログイン中...' : 'ログイン' }}</button>
 
-        <!-- error-message を v-show に変更し、常に領域を確保 -->
         <p class="error-message" v-show="true">{{ error || '　' }}</p>
 
         <p class="register-link">
@@ -71,9 +70,12 @@ async function handleRegister() {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 50vh;
+  height: 100vh;
   background-color: #f8fafc;
   font-family: 'Segoe UI', sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: auto;
 }
 
 .login-card {
@@ -82,7 +84,7 @@ async function handleRegister() {
   border-radius: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
-  width: 420px;
+  max-width: 420px;
   border: 1px solid #d1d5db;
   box-sizing: border-box;
 }
@@ -93,6 +95,9 @@ async function handleRegister() {
   font-weight: bold;
   color: #1e3a8a;
   margin-bottom: 2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .login-form .form-group {
@@ -143,7 +148,7 @@ button[type='submit']:disabled {
 }
 
 .error-message {
-  max-width: 100%; /* 追加: 親の幅以上に広がらない */
+  max-width: 100%;
   word-break: break-word;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -152,7 +157,7 @@ button[type='submit']:disabled {
   color: #dc2626;
   font-weight: bold;
   text-align: center;
-  padding: 0 0.5rem; /* 横に少し内側余白をつけて幅がはみ出しにくくする */
+  padding: 0 0.5rem;
 }
 
 .register-link {
@@ -175,5 +180,18 @@ button[type='submit']:disabled {
 
 .link-button:hover {
   color: #1e40af;
+}
+
+/* スマホ向け調整 */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem;
+  }
+
+  .login-title {
+    font-size: 1.4rem;
+    white-space: normal;
+    text-align: center;
+  }
 }
 </style>
