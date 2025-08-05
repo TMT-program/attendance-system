@@ -70,13 +70,10 @@ async function handleRegister() {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* height: 100vh; */
-  min-height: 100dvh;
-  background-color: #f8fafc;
-  font-family: 'Segoe UI', sans-serif;
-  padding: 1rem;
+  min-height: 100dvh; /* ← ここが一番大事 */
+  padding: 1rem 1rem;
   box-sizing: border-box;
-  overflow: hidden;
+  background-color: #f8fafc;
 }
 
 .login-card {
@@ -85,11 +82,12 @@ async function handleRegister() {
   border-radius: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 420px;
+  width: 400px;
   border: 1px solid #d1d5db;
   box-sizing: border-box;
   max-height: 100%;
   overflow: auto;
+  margin: 0 auto;
 }
 
 .login-title {
