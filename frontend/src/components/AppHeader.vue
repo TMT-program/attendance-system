@@ -73,6 +73,7 @@ const goBack = () => {
   border-bottom: 2px solid #dc2626;
   padding: 0 1.5rem;
   box-sizing: border-box;
+  overflow: hidden; /* はみ出し防止 */
 }
 
 .left-section {
@@ -101,6 +102,9 @@ const goBack = () => {
   color: #dc2626;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .title .icon {
@@ -112,12 +116,17 @@ const goBack = () => {
 .user-section {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  max-width: 50%;
 }
 
 .username {
-  margin-right: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
   color: #1e3a8a;
+  max-width: 140px;
 }
 
 .user-section button {
@@ -131,9 +140,27 @@ const goBack = () => {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  white-space: nowrap;
 }
 
 .user-section button:hover {
   background-color: #b91c1c;
+}
+
+/* スマホ対応 */
+@media (max-width: 600px) {
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .username {
+    font-size: 0.8rem;
+    max-width: 100px;
+  }
+
+  .user-section button {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
 }
 </style>
