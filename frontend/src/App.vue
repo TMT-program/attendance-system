@@ -22,6 +22,9 @@ const showHeader = computed(() => route.path !== '/login')
 body {
   background-color: #f8fafc;
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .main-content {

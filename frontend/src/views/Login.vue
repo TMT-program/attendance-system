@@ -70,12 +70,13 @@ async function handleRegister() {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  /* height: 100vh; */
+  min-height: 100dvh;
   background-color: #f8fafc;
   font-family: 'Segoe UI', sans-serif;
   padding: 1rem;
   box-sizing: border-box;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .login-card {
@@ -87,6 +88,8 @@ async function handleRegister() {
   max-width: 420px;
   border: 1px solid #d1d5db;
   box-sizing: border-box;
+  max-height: 100%;
+  overflow: auto;
 }
 
 .login-title {
@@ -102,6 +105,8 @@ async function handleRegister() {
 
 .login-form .form-group {
   margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 label {
@@ -115,6 +120,7 @@ input {
   width: 100%;
   padding: 0.6rem;
   font-size: 1rem;
+  display: block;
   border: 1px solid #94a3b8;
   border-radius: 6px;
   transition: border-color 0.3s ease;
