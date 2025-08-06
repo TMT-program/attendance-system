@@ -3,23 +3,30 @@
     <AppHeader :onBack="showHeaderBack ? goBackToMenu : undefined" />
     <h1 class="page-title">👥 ユーザー管理</h1>
 
-    <UserMenu v-if="currentView === 'menu'" @change-view="changeView" />
-    <UserList
-      v-if="currentView === 'list'"
-      :users="users"
-      @refresh-users="fetchUsers"
-      @go-back="goBackToMenu"
-    />
-    <UserAdd
-      v-if="currentView === 'add'"
-      @go-back="goBackToMenu"
-    />
-    <UserDelete
-      v-if="currentView === 'delete'"
-      :users="users"
-      @refresh-users="fetchUsers"
-      @go-back="goBackToMenu"
-    />
+    <LoadingSpinner v-if="isLoading" />
+
+    <template v-else>
+      <UserMenu v-if="currentView === 'menu'" @change-view="changeView" />
+
+      <UserList
+        v-if="currentView === 'list'"
+        :users="users"
+        @refresh-users="fetchUsers"
+        @go-back="goBackToMenu"
+      />
+
+      <UserAdd
+        v-if="currentView === 'add'"
+        @go-back="goBackToMenu"
+      />
+
+      <UserDelete
+        v-if="currentView === 'delete'"
+        :users="users"
+        @refresh-users="fetchUsers"
+        @go-back="goBackToMenu"
+      />
+    </template>
   </div>
 </template>
 
@@ -31,11 +38,14 @@ import UserMenu from './UserMenu.vue'
 import UserList from './UserList.vue'
 import UserAdd from './UserAdd.vue'
 import UserDelete from './UserDelete.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 import type { User } from '../components/types'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const currentView = ref<'menu' | 'list' | 'add' | 'delete'>('menu')
 const users = ref<User[]>([])
+const isLoading = ref(false)
 
 const showHeaderBack = computed(() => currentView.value !== 'menu')
 
@@ -53,10 +63,18 @@ async function fetchUsers() {
 }
 
 async function changeView(view: 'menu' | 'list' | 'add' | 'delete') {
+  isLoading.value = true
+
   if (view === 'list' || view === 'delete') {
     await fetchUsers()
   }
+
   currentView.value = view
+
+  // 軽く遅延させてスピナーを一瞬表示（視覚的に効果を感じるように）
+  setTimeout(() => {
+    isLoading.value = false
+  }, 300)
 }
 </script>
 

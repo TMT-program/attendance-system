@@ -260,7 +260,7 @@ const nextMonth = () => {
 /* スマホ用調整 */
 @media (max-width: 600px) {
   .attendance-report {
-    transform: scale(0.7);
+    transform: scale(0.9);
     transform-origin: top left;
   }
 
