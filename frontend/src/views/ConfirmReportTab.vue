@@ -235,7 +235,6 @@ onMounted(fetchRecords)
 watch([year, month], fetchRecords)
 </script>
 
-
 <style scoped>
 .confirm-report-tab {
   padding: 1rem;
@@ -269,6 +268,7 @@ watch([year, month], fetchRecords)
   border: 1px solid #ccc;
   padding: 0.6rem;
   text-align: center;
+  white-space: nowrap;
 }
 .status-approved {
   background-color: #d9f99d;
@@ -335,5 +335,21 @@ watch([year, month], fetchRecords)
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* スマホ画面用の倍率調整 */
+@media (max-width: 600px) {
+  .confirm-report-tab {
+    transform: scale(0.7);
+    transform-origin: top left;
+    margin-top: -0.5rem;
+  }
+  .record-table {
+    font-size: 0.8rem;
+  }
+  .month-selector,
+  .button-group {
+    margin-bottom: 0.5rem;
+  }
 }
 </style>

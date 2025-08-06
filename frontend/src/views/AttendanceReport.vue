@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { Clock4 } from 'lucide-vue-next'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
@@ -95,7 +95,6 @@ const toJSTTimeString = (input: any): string => {
   if (typeof input !== 'string' || !input.includes('T')) return ''
   const date = new Date(input)
   if (isNaN(date.getTime())) return ''
-  date.setHours(date.getHours())
   return date.toTimeString().slice(0, 5)
 }
 
@@ -123,7 +122,6 @@ onMounted(() => {
 
 const fetchRecords = async () => {
   if (!uid.value) return
-
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
 
   try {
@@ -260,8 +258,13 @@ const nextMonth = () => {
 /* スマホ用調整 */
 @media (max-width: 600px) {
   .attendance-report {
-    transform: scale(0.9);
+    transform: scale(0.85);
     transform-origin: top left;
+  }
+
+  .icon {
+    width: 22px;
+    height: 22px;
   }
 
   .title {
@@ -269,12 +272,13 @@ const nextMonth = () => {
   }
 
   .tab-button {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
   }
 
   .tab-menu {
-    gap: 0.2rem;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
   }
 }
 </style>
