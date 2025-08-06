@@ -167,7 +167,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  min-width: 360px; /* スマホ画面幅に近づけて初期表示で収める */
+  /* min-width: 360px; */
   max-width: 100%;
 }
 
@@ -176,7 +176,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   padding: 12px;
   border-bottom: 1px solid #ccc;
   text-align: left;
-  white-space: nowrap;
+  /* white-space: nowrap; */
 }
 
 .user-table thead {
