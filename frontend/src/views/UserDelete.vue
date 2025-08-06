@@ -5,37 +5,39 @@
     <LoadingSpinner v-if="isLoading" />
 
     <div v-else>
-      <div class="table-wrapper">
-        <table class="user-table">
-          <thead>
-            <tr>
-              <th>名前</th>
-              <th>メールアドレス</th>
-              <th>管理者権限</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="user in paginatedUsers"
-              :key="user.uid"
-              :class="{ selected: selectedUser?.uid === user.uid }"
-              @click="selectUser(user)"
-            >
-              <td>{{ user.displayName || '(名前なし)' }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
-            </tr>
-            <tr v-if="paginatedUsers.length === 0">
-              <td colspan="3" class="no-data">該当するユーザーがいません</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="responsive-wrapper">
+        <div class="table-wrapper">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>名前</th>
+                <th>メールアドレス</th>
+                <th>管理者権限</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="user in paginatedUsers"
+                :key="user.uid"
+                :class="{ selected: selectedUser?.uid === user.uid }"
+                @click="selectUser(user)"
+              >
+                <td>{{ user.displayName || '(名前なし)' }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
+              </tr>
+              <tr v-if="paginatedUsers.length === 0">
+                <td colspan="3" class="no-data">該当するユーザーがいません</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <div class="pagination">
-        <button @click="prevPage" :disabled="page === 1">←</button>
-        <span>{{ page }} / {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="page === totalPages">→</button>
+        <div class="pagination">
+          <button @click="prevPage" :disabled="page === 1">←</button>
+          <span>{{ page }} / {{ totalPages }}</span>
+          <button @click="nextPage" :disabled="page === totalPages">→</button>
+        </div>
       </div>
 
       <div v-if="selectedUser" class="confirm-box">
@@ -127,6 +129,10 @@ const deleteUser = async () => {
 .section-title {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
+}
+
+.responsive-wrapper {
+  transition: transform 0.2s ease;
 }
 
 .table-wrapper {
@@ -243,13 +249,34 @@ const deleteUser = async () => {
 }
 
 /* スマホ用調整 */
-@media (max-width: 480px) {
-  .section-title {
-    font-size: 1.5rem;
+@media (max-width: 600px) {
+  .responsive-wrapper {
+    transform: scale(0.7);
+    transform-origin: top left;
   }
 
   .user-table {
-    font-size: 0.85rem;
+    transform: scale(0.7);
+    transform-origin: top left;
+    margin-top: 0.01rem;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pagination {
+    margin: 0.2rem 0;
+  }
+
+  .pagination span {
+    font-size: 1.5rem;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 8px;
   }
 
   .delete-button {
