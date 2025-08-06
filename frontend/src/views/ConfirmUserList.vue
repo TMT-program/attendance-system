@@ -1,30 +1,32 @@
 <template>
   <div class="confirm-user-list">
-    <h2>ユーザー一覧</h2>
+    <h2 class="section-title">ユーザー一覧</h2>
 
-    <table class="user-table">
-      <thead>
-        <tr>
-          <th>ユーザー名</th>
-          <th>メールアドレス</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in paginatedUsers" :key="user.uid">
-          <td>{{ user.displayName || '-' }}</td>
-          <td>{{ user.email }}</td>
-          <td>
-            <button class="submit-button" @click="selectUser(user)">確認</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="responsive-wrapper">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>ユーザー名</th>
+            <th>メールアドレス</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in paginatedUsers" :key="user.uid">
+            <td>{{ user.displayName || '-' }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <button class="submit-button" @click="selectUser(user)">確認</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-    <div class="pagination">
-      <button @click="prevPage" :disabled="currentPage === 1">←</button>
-      <span>Page {{ currentPage }} / {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="currentPage === totalPages">→</button>
+      <div class="pagination">
+        <button @click="prevPage" :disabled="currentPage === 1">←</button>
+        <span>Page {{ currentPage }} / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="currentPage === totalPages">→</button>
+      </div>
     </div>
   </div>
 </template>
@@ -82,26 +84,49 @@ onMounted(fetchUsers)
 
 <style scoped>
 .confirm-user-list {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
 }
+
+.section-title {
+  font-size: 1.6rem;
+  margin-bottom: 1.2rem;
+  font-weight: bold;
+  color: #1e3a8a;
+}
+
+.responsive-wrapper {
+  overflow-x: auto;
+}
+
 .user-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
+  font-size: 0.95rem;
+  min-width: 480px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
 }
+
 .user-table th,
 .user-table td {
   border: 1px solid #ccc;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   text-align: left;
+  white-space: nowrap; /* 折り返さない */
 }
+
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin: 1rem 0;
+  font-size: 0.95rem;
 }
 
 button {
@@ -119,5 +144,37 @@ button {
 }
 .submit-button:hover {
   background-color: #1e40af;
+}
+
+/* スマホ画面向け縮小表示 */
+@media (max-width: 600px) {
+  .responsive-wrapper {
+    transform: scale(0.7);
+    transform-origin: top left;
+  }
+
+  .user-table {
+    margin-top: 0.01rem;
+  }
+
+  .pagination {
+    margin: 0.2rem 0;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .submit-button {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
 }
 </style>
