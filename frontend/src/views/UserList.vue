@@ -161,6 +161,7 @@ const toggleAdmin = async (user: User, event: Event) => {
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
+  table-layout: fixed;
 }
 
 .user-table {
@@ -176,6 +177,9 @@ const toggleAdmin = async (user: User, event: Event) => {
   padding: 12px;
   border-bottom: 1px solid #ccc;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   /* white-space: nowrap; */
 }
 
