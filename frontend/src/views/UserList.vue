@@ -139,23 +139,31 @@ const toggleAdmin = async (user: User, event: Event) => {
   gap: 0.5rem;
   margin-bottom: 1rem;
   justify-content: center;
+  align-items: center;
 }
 
 .search-box input,
 .search-box button {
-  padding: 0.5rem;
-  min-width: 180px;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.search-box input {
+  border: 1px solid #ccc;
   max-width: 300px;
   width: 100%;
-  box-sizing: border-box;
 }
 
 .search-box button {
   background-color: #1e3a8a;
   color: white;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
+  max-width: 150px;
+  width: 100%;
 }
 
 .table-wrapper {
@@ -168,7 +176,6 @@ const toggleAdmin = async (user: User, event: Event) => {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  /* min-width: 360px; */
   max-width: 100%;
 }
 
@@ -180,7 +187,6 @@ const toggleAdmin = async (user: User, event: Event) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* white-space: nowrap; */
 }
 
 .user-table thead {
@@ -200,6 +206,21 @@ const toggleAdmin = async (user: User, event: Event) => {
   gap: 1rem;
 }
 
+.pagination button {
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  background-color: #1e3a8a;
+  color: white;
+  border: none;
+  cursor: pointer;
+  min-width: 40px;
+}
+
+.pagination span {
+  font-size: 1rem;
+}
+
 @media (max-width: 600px) {
   .user-table {
     transform: scale(0.7);
@@ -209,6 +230,22 @@ const toggleAdmin = async (user: User, event: Event) => {
   .search-box {
     flex-direction: column;
     align-items: center;
+  }
+
+  .search-box input,
+  .search-box button {
+    width: 100%;
+    max-width: none;
+  }
+
+  .pagination {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .pagination button {
+    width: 100%;
+    max-width: none;
   }
 
   .pagination span {
