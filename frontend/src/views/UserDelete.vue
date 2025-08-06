@@ -1,37 +1,37 @@
 <template>
   <div class="user-section">
-    <h2 class="section-title">🗑️ ユーザー削除</h2>
-
-    <LoadingSpinner v-if="isLoading" />
+    <div v-if="isLoading">
+      <LoadingSpinner />
+    </div>
 
     <div v-else>
-      <div class="responsive-wrapper">
-        <div class="table-wrapper">
-          <table class="user-table">
-            <thead>
-              <tr>
-                <th>名前</th>
-                <th>メールアドレス</th>
-                <th>管理者権限</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="user in paginatedUsers"
-                :key="user.uid"
-                :class="{ selected: selectedUser?.uid === user.uid }"
-                @click="selectUser(user)"
-              >
-                <td>{{ user.displayName || '(名前なし)' }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
-              </tr>
-              <tr v-if="paginatedUsers.length === 0">
-                <td colspan="3" class="no-data">該当するユーザーがいません</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="table-wrapper">
+        <h2 class="section-title">🗑️ ユーザー削除</h2>
+
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>名前</th>
+              <th>メールアドレス</th>
+              <th>管理者権限</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="user in paginatedUsers"
+              :key="user.uid"
+              :class="{ selected: selectedUser?.uid === user.uid }"
+              @click="selectUser(user)"
+            >
+              <td>{{ user.displayName || '(名前なし)' }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
+            </tr>
+            <tr v-if="paginatedUsers.length === 0">
+              <td colspan="3" class="no-data">該当するユーザーがいません</td>
+            </tr>
+          </tbody>
+        </table>
 
         <div class="pagination">
           <button @click="prevPage" :disabled="page === 1">←</button>
@@ -67,10 +67,7 @@ import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-const props = defineProps<{
-  users: User[]
-}>()
-
+const props = defineProps<{ users: User[] }>()
 const emit = defineEmits<{
   (e: 'go-back'): void
   (e: 'refresh-users'): void
@@ -128,21 +125,24 @@ const deleteUser = async () => {
 
 .section-title {
   font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-}
-
-.responsive-wrapper {
-  transition: transform 0.2s ease;
+  margin: 1rem auto 1.5rem auto;
+  color: #1e3a8a;
+  text-align: center;
+  width: fit-content;
 }
 
 .table-wrapper {
   overflow-x: auto;
+  margin: 0 auto;
+  max-width: 100%;
+  text-align: center;
 }
 
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
   font-size: 0.95rem;
   text-align: left;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
@@ -178,7 +178,7 @@ const deleteUser = async () => {
 }
 
 .pagination {
-  margin: 1rem 0;
+  margin: 0.8rem 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -250,20 +250,24 @@ const deleteUser = async () => {
 
 /* スマホ用調整 */
 @media (max-width: 600px) {
-  .responsive-wrapper {
-    transform: scale(0.7);
-    transform-origin: top left;
-  }
-
+  .table-wrapper,
   .user-table {
     transform: scale(0.7);
     transform-origin: top left;
-    margin-top: 0.01rem;
   }
 
   .section-title {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
+  }
+
+  .user-table {
+    margin-top: 0.01rem;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 8px;
   }
 
   .pagination {
@@ -272,11 +276,6 @@ const deleteUser = async () => {
 
   .pagination span {
     font-size: 1.5rem;
-  }
-
-  .user-table th,
-  .user-table td {
-    padding: 8px;
   }
 
   .delete-button {
