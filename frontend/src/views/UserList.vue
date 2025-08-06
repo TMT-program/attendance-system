@@ -159,6 +159,7 @@ const toggleAdmin = async (user: User, event: Event) => {
 }
 
 .table-wrapper {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -167,7 +168,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   border-collapse: collapse;
   margin-top: 1rem;
   min-width: 360px; /* スマホ画面幅に近づけて初期表示で収める */
-  max-width: 100vw;
+  max-width: 100%;
 }
 
 .user-table th,
