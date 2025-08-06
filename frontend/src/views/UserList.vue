@@ -91,12 +91,11 @@ const searchUsers = () => {
   page.value = 1
 }
 
-// 初期表示時にスピナーを一瞬出す（スマホで安心感）
 onMounted(() => {
   isLoading.value = true
   setTimeout(() => {
     isLoading.value = false
-  }, 300) // 表示が間に合うように軽く待機
+  }, 300)
 })
 
 const toggleAdmin = async (user: User, event: Event) => {
@@ -142,16 +141,16 @@ const toggleAdmin = async (user: User, event: Event) => {
   justify-content: center;
 }
 
-.search-box input {
+.search-box input,
+.search-box button {
   padding: 0.5rem;
   min-width: 180px;
   max-width: 300px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-box button {
-  padding: 0.5rem 1rem;
   background-color: #1e3a8a;
   color: white;
   border: none;
@@ -167,7 +166,8 @@ const toggleAdmin = async (user: User, event: Event) => {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  min-width: 480px;
+  min-width: 360px; /* スマホ画面幅に近づけて初期表示で収める */
+  max-width: 100vw;
 }
 
 .user-table th,
@@ -203,11 +203,6 @@ const toggleAdmin = async (user: User, event: Event) => {
   .search-box {
     flex-direction: column;
     align-items: center;
-  }
-
-  .search-box input,
-  .search-box button {
-    width: 100%;
   }
 
   .pagination span {
