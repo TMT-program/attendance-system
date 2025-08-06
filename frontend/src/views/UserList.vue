@@ -243,7 +243,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   }
 
   .pagination span {
-    font-size: 0.5rem;
+    font-size: 2rem;
   }
 
   .user-table th,
