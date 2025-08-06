@@ -283,7 +283,7 @@ const deleteUser = async () => {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
     text-align: center;         /* ← 追加！ */
-    padding-right: 7.0rem;  
+    padding-right: 5.0rem;  
   }
 }
 
