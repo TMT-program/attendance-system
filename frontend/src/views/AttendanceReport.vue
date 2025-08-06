@@ -1,4 +1,57 @@
-<!-- AttendanceReport.vue -->
+<template>
+  <div class="attendance-report">
+    <div class="header">
+      <Clock4 class="icon" />
+      <h1 class="title">勤務報告</h1>
+    </div>
+
+    <div v-if="!uid" class="loading">ユーザー情報を取得中...</div>
+
+    <div v-else>
+      <div class="tab-menu">
+        <button
+          v-for="tab in tabs"
+          :key="tab"
+          :class="['tab-button', { active: currentTab === tab }]"
+          @click="() => { currentTab = tab; selectedUser = null }"
+        >
+          {{ tab }}
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <AttendanceTab
+          v-if="currentTab === '勤怠'"
+          :uid="uid"
+          :attendance="attendance"
+          :onUpdate="fetchRecords"
+        />
+
+        <ReportTab
+          v-if="currentTab === '勤務実績'"
+          :uid="uid"
+          :year="year"
+          :month="month"
+          :records="records"
+          @prevMonth="prevMonth"
+          @nextMonth="nextMonth"
+        />
+
+        <ConfirmUserList
+          v-if="currentTab === '勤務実績確認' && isAdmin && !selectedUser"
+          @select-user="(user) => selectedUser = user"
+        />
+
+        <ConfirmReportTab
+          v-if="currentTab === '勤務実績確認' && isAdmin && selectedUser"
+          :user="selectedUser"
+          @back="() => selectedUser = null"
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { Clock4 } from 'lucide-vue-next'
 import { ref, onMounted, computed } from 'vue'
@@ -11,6 +64,7 @@ import AttendanceTab from './AttendanceTab.vue'
 import ReportTab from './ReportTab.vue'
 import ConfirmUserList from './ConfirmUserList.vue'
 import ConfirmReportTab from './ConfirmReportTab.vue'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 type TabType = '勤怠' | '勤務実績' | '勤務実績確認'
@@ -37,12 +91,8 @@ interface RecordEntry {
 const records = ref<RecordEntry[]>([])
 
 const toJSTTimeString = (input: any): string => {
-  if (typeof input === 'string' && /^\d{2}:\d{2}$/.test(input)) {
-    return input
-  }
-  if (typeof input !== 'string' || !input.includes('T')) {
-    return ''
-  }
+  if (typeof input === 'string' && /^\d{2}:\d{2}$/.test(input)) return input
+  if (typeof input !== 'string' || !input.includes('T')) return ''
   const date = new Date(input)
   if (isNaN(date.getTime())) return ''
   date.setHours(date.getHours())
@@ -59,7 +109,6 @@ onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       uid.value = user.uid
-
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       if (userDoc.exists()) {
         isAdmin.value = !!userDoc.data().isAdmin
@@ -67,7 +116,6 @@ onMounted(() => {
           tabs.value.push('勤務実績確認')
         }
       }
-
       fetchRecords()
     }
   })
@@ -137,60 +185,6 @@ const nextMonth = () => {
 }
 </script>
 
-<template>
-  <div class="attendance-report">
-    <div class="header">
-      <Clock4 class="icon" />
-      <h1 class="title">勤務報告</h1>
-    </div>
-
-    <div v-if="!uid" class="loading">ユーザー情報を取得中...</div>
-
-    <div v-else>
-      <div class="tab-menu">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          :class="['tab-button', { active: currentTab === tab }]"
-          @click="() => { currentTab = tab; selectedUser = null }"
-        >
-          {{ tab }}
-        </button>
-      </div>
-
-      <div class="tab-content">
-        <AttendanceTab
-          v-if="currentTab === '勤怠'"
-          :uid="uid"
-          :attendance="attendance"
-          :onUpdate="fetchRecords"
-        />
-
-        <ReportTab
-          v-if="currentTab === '勤務実績'"
-          :uid="uid"
-          :year="year"
-          :month="month"
-          :records="records"
-          @prevMonth="prevMonth"
-          @nextMonth="nextMonth"
-        />
-
-        <ConfirmUserList
-          v-if="currentTab === '勤務実績確認' && isAdmin && !selectedUser"
-          @select-user="(user) => selectedUser = user"
-        />
-
-        <ConfirmReportTab
-          v-if="currentTab === '勤務実績確認' && isAdmin && selectedUser"
-          :user="selectedUser"
-          @back="() => selectedUser = null"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <style scoped>
 .attendance-report {
   padding: 2rem 1rem;
@@ -198,6 +192,7 @@ const nextMonth = () => {
   margin: 0 auto;
   font-family: 'Segoe UI', sans-serif;
 }
+
 .header {
   display: flex;
   align-items: center;
@@ -205,22 +200,29 @@ const nextMonth = () => {
   margin-bottom: 1.5rem;
   gap: 0.5rem;
 }
+
 .icon {
   width: 28px;
   height: 28px;
   color: #1e3a8a;
 }
+
 .title {
   font-size: 1.8rem;
   font-weight: 700;
   color: #1e3a8a;
+  white-space: nowrap;
 }
+
 .tab-menu {
   display: flex;
   justify-content: center;
   border-bottom: 1px solid #ccc;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
+
 .tab-button {
   background: none;
   border: none;
@@ -232,11 +234,14 @@ const nextMonth = () => {
   transition: all 0.2s;
   position: relative;
   outline: none;
+  white-space: nowrap;
 }
+
 .tab-button.active {
   color: #2563eb;
   font-weight: 600;
 }
+
 .tab-button.active::after {
   content: '';
   position: absolute;
@@ -247,7 +252,29 @@ const nextMonth = () => {
   background-color: #2563eb;
   border-radius: 2px;
 }
+
 .tab-content {
   min-height: 300px;
+}
+
+/* スマホ用調整 */
+@media (max-width: 600px) {
+  .attendance-report {
+    transform: scale(0.7);
+    transform-origin: top left;
+  }
+
+  .title {
+    font-size: 1.4rem;
+  }
+
+  .tab-button {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .tab-menu {
+    gap: 0.2rem;
+  }
 }
 </style>
