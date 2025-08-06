@@ -149,7 +149,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   justify-content: center;
 }
 
@@ -233,7 +233,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   }
 
   .pagination {
-    margin: 0.5rem 0;
+    margin: 0.2rem 0;
   }
 
   .pagination span {
