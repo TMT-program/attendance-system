@@ -278,6 +278,23 @@ const deleteUser = async () => {
     font-size: 1.5rem;
   }
 
+  @media (max-width: 600px) {
+  .section-title {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    text-align: left;         /* ← 追加！ */
+    margin-left: 0.2rem;      /* ← 追加！ */
+  }
+}
+
+@media (max-width: 600px) {
+  .pagination {
+    margin: 0.2rem 0;
+    justify-content: flex-start; /* ← 中央 → 左寄せに変更！ */
+    padding-left: 0.2rem;        /* ← 左寄せ時の余白調整（任意） */
+  }
+}
+
   .delete-button {
     font-size: 0.9rem;
   }
