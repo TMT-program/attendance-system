@@ -1,43 +1,51 @@
 <template>
   <div class="user-section">
-    <h2 class="section-title">📋 ユーザー一覧</h2>
+    <div class="responsive-wrapper">
+      <h2 class="section-title">📋 ユーザー一覧</h2>
 
-    <div class="search-box">
-      <input type="text" v-model="searchKeyword" placeholder="検索ワードを入力" />
-      <button @click="searchUsers">検索</button>
-    </div>
-
-    <LoadingSpinner v-if="isLoading" />
-
-    <div v-else class="table-wrapper">
-      <table class="user-table">
-        <thead>
-          <tr>
-            <th>名前</th>
-            <th>メールアドレス</th>
-            <th>管理者権限</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in paginatedUsers" :key="user.uid">
-            <td>{{ user.displayName || '(名前なし)' }}</td>
-            <td>{{ user.email }}</td>
-            <td>
-              <input type="checkbox" :checked="user.isAdmin" @change="toggleAdmin(user, $event)" />
-            </td>
-          </tr>
-          <tr v-if="paginatedUsers.length === 0">
-            <td colspan="3" class="no-data">該当するユーザーがいません</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="pagination">
-        <button @click="prevPage" :disabled="page === 1">←</button>
-        <span>{{ page }} / {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="page === totalPages">→</button>
+      <div class="search-box">
+        <input type="text" v-model="searchKeyword" placeholder="検索ワードを入力" />
+        <button @click="searchUsers">検索</button>
       </div>
     </div>
+
+    <template v-if="isLoading">
+      <LoadingSpinner />
+    </template>
+
+    <template v-else>
+      <div class="table-wrapper">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>名前</th>
+              <th>メールアドレス</th>
+              <th>管理者権限</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in paginatedUsers" :key="user.uid">
+              <td>{{ user.displayName || '(名前なし)' }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <input type="checkbox" :checked="user.isAdmin" @change="toggleAdmin(user, $event)" />
+              </td>
+            </tr>
+            <tr v-if="paginatedUsers.length === 0">
+              <td colspan="3" class="no-data">該当するユーザーがいません</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="responsive-wrapper">
+          <div class="pagination">
+            <button @click="prevPage" :disabled="page === 1">←</button>
+            <span>{{ page }} / {{ totalPages }}</span>
+            <button @click="nextPage" :disabled="page === totalPages">→</button>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -125,6 +133,10 @@ const toggleAdmin = async (user: User, event: Event) => {
   max-width: 100%;
 }
 
+.responsive-wrapper {
+  transition: transform 0.2s ease;
+}
+
 .section-title {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
@@ -139,31 +151,23 @@ const toggleAdmin = async (user: User, event: Event) => {
   gap: 0.5rem;
   margin-bottom: 1rem;
   justify-content: center;
-  align-items: center;
 }
 
 .search-box input,
 .search-box button {
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  height: 40px;
-  box-sizing: border-box;
-}
-
-.search-box input {
-  border: 1px solid #ccc;
+  padding: 0.5rem;
+  min-width: 180px;
   max-width: 300px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .search-box button {
   background-color: #1e3a8a;
   color: white;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
-  max-width: 150px;
-  width: 100%;
 }
 
 .table-wrapper {
@@ -206,23 +210,13 @@ const toggleAdmin = async (user: User, event: Event) => {
   gap: 1rem;
 }
 
-.pagination button {
-  padding: 0.4rem 0.8rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  background-color: #1e3a8a;
-  color: white;
-  border: none;
-  cursor: pointer;
-  min-width: 40px;
-}
-
-.pagination span {
-  font-size: 1rem;
-}
-
 @media (max-width: 600px) {
   .user-table {
+    transform: scale(0.7);
+    transform-origin: top left;
+  }
+
+  .responsive-wrapper {
     transform: scale(0.7);
     transform-origin: top left;
   }
@@ -230,22 +224,6 @@ const toggleAdmin = async (user: User, event: Event) => {
   .search-box {
     flex-direction: column;
     align-items: center;
-  }
-
-  .search-box input,
-  .search-box button {
-    width: 100%;
-    max-width: none;
-  }
-
-  .pagination {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-
-  .pagination button {
-    width: 100%;
-    max-width: none;
   }
 
   .pagination span {
