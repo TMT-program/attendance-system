@@ -1,6 +1,7 @@
 <template>
   <div class="user-section">
     <h2 class="section-title">📋 ユーザー一覧</h2>
+
     <div class="search-box">
       <input type="text" v-model="searchKeyword" placeholder="検索ワードを入力" />
       <button @click="searchUsers">検索</button>
@@ -41,9 +42,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits } from 'vue'
+import { ref, computed, defineProps, defineEmits, onMounted } from 'vue'
 import axios from 'axios'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 interface User {
@@ -89,6 +91,14 @@ const searchUsers = () => {
   page.value = 1
 }
 
+// 初期表示時にスピナーを一瞬出す（スマホで安心感）
+onMounted(() => {
+  isLoading.value = true
+  setTimeout(() => {
+    isLoading.value = false
+  }, 300) // 表示が間に合うように軽く待機
+})
+
 const toggleAdmin = async (user: User, event: Event) => {
   const isChecked = (event.target as HTMLInputElement).checked
   isLoading.value = true
@@ -113,12 +123,14 @@ const toggleAdmin = async (user: User, event: Event) => {
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .section-title {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
   color: #1e3a8a;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -127,11 +139,11 @@ const toggleAdmin = async (user: User, event: Event) => {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  justify-content: center;
 }
 
 .search-box input {
   padding: 0.5rem;
-  flex: 1;
   min-width: 180px;
   max-width: 300px;
   border: 1px solid #ccc;
@@ -155,7 +167,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  min-width: 480px; /* スマホで崩れないよう最小幅を確保 */
+  min-width: 480px;
 }
 
 .user-table th,
@@ -190,7 +202,7 @@ const toggleAdmin = async (user: User, event: Event) => {
 
   .search-box {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
   }
 
   .search-box input,
