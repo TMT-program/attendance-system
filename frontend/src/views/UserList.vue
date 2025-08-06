@@ -221,13 +221,28 @@ const toggleAdmin = async (user: User, event: Event) => {
     transform-origin: top left;
   }
 
+  .section-title {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+
   .search-box {
     flex-direction: column;
     align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .pagination {
+    margin: 0.5rem 0;
   }
 
   .pagination span {
     font-size: 0.9rem;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 8px;
   }
 }
 </style>
