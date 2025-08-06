@@ -183,6 +183,12 @@ const toggleAdmin = async (user: User, event: Event) => {
   max-width: 100%;
 }
 
+@media (max-width: 600px) {
+  .user-table {
+    margin-top: 0.3rem; /* ←スマホだけ詰める！ */
+  }
+}
+
 .user-table th,
 .user-table td {
   padding: 12px;
