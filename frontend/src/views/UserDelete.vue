@@ -252,7 +252,7 @@ const deleteUser = async () => {
 @media (max-width: 600px) {
   .table-wrapper,
   .user-table {
-    transform: scale(0.8);
+    transform: scale(0.9);
     transform-origin: top left;
   }
 
@@ -283,6 +283,7 @@ const deleteUser = async () => {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
     text-align: center;         /* ← 追加！ */
+    padding-left: -20.0rem;  
   }
 }
 
@@ -290,7 +291,7 @@ const deleteUser = async () => {
   .pagination {
     margin: 0.2rem 0;
     justify-content: flex-start; /* ← 中央 → 左寄せに変更！ */
-    padding-left: 2.0rem;        /* ← 左寄せ時の余白調整（任意） */
+    padding-left: 20.0rem;        /* ← 左寄せ時の余白調整（任意） */
   }
 }
 
