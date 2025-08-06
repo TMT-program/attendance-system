@@ -201,8 +201,9 @@ const toggleAdmin = async (user: User, event: Event) => {
 }
 
 @media (max-width: 600px) {
-  .section-title {
-    font-size: 1.4rem;
+  .user-table {
+    transform: scale(0.7);
+    transform-origin: top left;
   }
 
   .search-box {
