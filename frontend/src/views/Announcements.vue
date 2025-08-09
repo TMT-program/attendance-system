@@ -42,7 +42,7 @@
                 <a :href="file.url" target="_blank" rel="noopener">{{ file.name }}</a>
               </td>
               <td v-if="isAdmin">
-                <button @click="deleteFile(file.name)">削除</button>
+                <button class="delete-btn" @click="deleteFile(file.name)">削除</button>
               </td>
             </tr>
           </tbody>
@@ -63,6 +63,8 @@ import { db } from '../firebase'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
+
 const isAdmin = ref(false)
 const uid = ref<string | null>(null)
 const announcements = ref<{ name: string, url: string }[]>([])
@@ -92,6 +94,11 @@ const handleDrop = (event: DragEvent) => {
 }
 
 const uploadFiles = async () => {
+  if (IS_DEMO) {
+    alert('デモ用システムのためアップロードはできません')
+    return
+  }
+
   const existingSet = new Set(announcements.value.map(file => file.name))
   const duplicated = droppedFiles.value.find(file => existingSet.has(file.name))
 
@@ -120,6 +127,10 @@ const uploadFiles = async () => {
 }
 
 const deleteFile = async (filename: string) => {
+  if (IS_DEMO) {
+    alert('デモ用システムのため削除はできません')
+    return
+  }
   if (!confirm(`"${filename}" を削除しますか？`)) return
   try {
     isLoading.value = true
@@ -160,7 +171,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* もとのスタイル省略せず同じ */
 .announcement-page {
   padding: 2rem;
   max-width: 800px;
@@ -168,6 +178,7 @@ onMounted(() => {
   font-family: 'Segoe UI', sans-serif;
   color: #1e3a8a;
 }
+
 .page-title {
   font-size: 1.8rem;
   display: flex;
@@ -175,12 +186,15 @@ onMounted(() => {
   gap: 0.5rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
+  padding-left: 12px;
 }
+
 .icon {
   width: 1.5rem;
   height: 1.5rem;
   stroke: #1e3a8a;
 }
+
 .upload-section button {
   background-color: #2563eb;
   color: white;
@@ -190,6 +204,7 @@ onMounted(() => {
   margin-bottom: 1rem;
   cursor: pointer;
 }
+
 .upload-area {
   border: 2px dashed #aaa;
   padding: 1rem;
@@ -205,6 +220,7 @@ onMounted(() => {
   color: red;
   margin-top: 0.5rem;
 }
+
 .announcement-table {
   width: 100%;
   border-collapse: collapse;
@@ -231,6 +247,20 @@ onMounted(() => {
 .announcement-table tr:hover {
   background-color: #eef3ff;
 }
+
+.delete-btn {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.delete-btn:hover {
+  background-color: #b91c1c;
+}
+
 a {
   color: #2563eb;
   text-decoration: none;
@@ -238,6 +268,7 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
 .no-data {
   color: #555;
   font-size: 0.95rem;
