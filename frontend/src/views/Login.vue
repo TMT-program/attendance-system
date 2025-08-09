@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrapper">
     <div class="login-card">
-      <h1 class="login-title">TMT 勤怠システム</h1>
+      <h1 class="login-title">TMT 勤怠管理システム</h1>
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="email">メールアドレス</label>
@@ -32,6 +32,8 @@ import { useRouter } from 'vue-router'
 import { auth } from '../firebase'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 
+const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
+
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -53,6 +55,12 @@ async function handleLogin() {
 
 async function handleRegister() {
   error.value = ''
+  // デモモード時は登録機能を無効化
+  if (IS_DEMO) {
+    error.value = 'デモ用システムのため新規登録機能は無効にしています。'
+    return
+  }
+
   loading.value = true
   try {
     await createUserWithEmailAndPassword(auth, email.value, password.value)
@@ -91,7 +99,6 @@ async function handleRegister() {
   max-height: 100%;
   overflow: auto;
   margin: 0 auto;
-  
 }
 
 .login-title {
@@ -184,13 +191,17 @@ button[type='submit']:disabled {
   cursor: pointer;
   padding: 0;
   margin-left: 0.4rem;
+  outline: none;
+}
+
+.link-button:focus {
+  outline: none;
 }
 
 .link-button:hover {
   color: #1e40af;
 }
 
-/* スマホ向け調整 */
 @media (max-width: 480px) {
   .login-card {
     padding: 1.5rem;
