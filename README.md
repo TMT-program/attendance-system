@@ -2,7 +2,7 @@
 
 ## 📝 概要
 
-このシステムは、個人や小規模チームのための**勤怠・勤務報告管理ツール**です。  
+このシステムは、**勤怠・勤務報告管理ツール**です。  
 ユーザーによる出勤・退勤の打刻、作業内容の記録・提出、管理者による勤務実績の確認・承認、さらに周知事項のPDF共有機能まで、**現場で必要な機能を一通り備えています**。
 
 ---
@@ -49,7 +49,7 @@
 - 1993年8月22日生まれ（31歳）
 - 大阪府立高津高校卒
 - 慶應義塾大学理工学部 応用化学科 卒業
-- IT企業にて **8年間システム開発に従事**
+- 2018年～現在まで、IT企業にて **システム開発に従事**
 
 現在は、IT企業でエンジニアをやりながら、将来的な**フリーランス独立を視野に入れたポートフォリオ作成、小規模案件への挑戦**に取り組んでいます。  
 **生成AIを活用した効率的な開発**を実践し、早く正確な開発を目指しています。
@@ -81,11 +81,18 @@
 - フロントエンド：  
   [https://attendance-system-eight-iota.vercel.app/login](https://attendance-system-eight-iota.vercel.app/login)
 
-※ ログインには Firebase Authentication に登録されたユーザーアカウントが必要です。
+※ デモシステムを利用の際は、以下のデモ用ユーザーをご利用ください。
+■管理者ユーザー
+USER：TMT_Admin@example.com
+PASS：AdminTest99
+
+■一般ユーザー
+USER：TMT_User@example.com
+PASS：UserTest99
 
 ---
 
 ## 📬 お問い合わせ
 
 - GitHub: [https://github.com/TMT-program](https://github.com/TMT-program)  
-- X（旧Twitter）やメールなど、別の連絡手段が必要であれば後で追記してください。
+- X(twitter):[https://x.com/tomato19345821](https://x.com/tomato19345821)
