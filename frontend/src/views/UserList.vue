@@ -28,7 +28,11 @@
               <td>{{ user.displayName || '(名前なし)' }}</td>
               <td>{{ user.email }}</td>
               <td>
-                <input type="checkbox" :checked="user.isAdmin" @change="toggleAdmin(user, $event)" />
+                <input
+                  type="checkbox"
+                  :checked="user.isAdmin"
+                  @change="toggleAdmin(user, $event)"
+                />
               </td>
             </tr>
             <tr v-if="paginatedUsers.length === 0">
@@ -55,6 +59,13 @@ import axios from 'axios'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
+
+// デモモードで権限変更を禁止する UID
+const DEMO_PROTECTED_UIDS = [
+  '5fvxqbgf4nPN1k1gR1vp2seFzOr1', // 管理者
+  'Mc7myNRJ0HV5jmBh3yRgCwGtkHk2'  // 一般
+]
 
 interface User {
   uid: string
@@ -108,6 +119,14 @@ onMounted(() => {
 
 const toggleAdmin = async (user: User, event: Event) => {
   const isChecked = (event.target as HTMLInputElement).checked
+
+  // デモモードかつ保護対象 UID の場合はキャンセル
+  if (IS_DEMO && DEMO_PROTECTED_UIDS.includes(user.uid)) {
+    alert('このユーザーの管理者権限は変更できません(デモ用動作)')
+    ;(event.target as HTMLInputElement).checked = user.isAdmin // 元の状態に戻す
+    return
+  }
+
   isLoading.value = true
   try {
     await axios.patch(`${API_BASE_URL}/api/users/${user.uid}/role`, {
