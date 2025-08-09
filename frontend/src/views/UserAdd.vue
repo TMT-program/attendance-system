@@ -18,6 +18,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const newEmail = ref('')
 const newPassword = ref('')
 const addMessage = ref('')
+let messageTimer: ReturnType<typeof setTimeout> | null = null
 
 interface AddUserResponse {
   email: string
@@ -25,17 +26,30 @@ interface AddUserResponse {
 
 const addUser = async () => {
   try {
-    const res = await axios.post<AddUserResponse>(`${API_BASE_URL}/api/users`, {
-      email: newEmail.value,
+    const originalEmail = newEmail.value // 入力時のメールアドレスを保持
+    await axios.post<AddUserResponse>(`${API_BASE_URL}/api/users`, {
+      email: originalEmail,
       password: newPassword.value,
-      displayName: newEmail.value.split('@')[0]
+      displayName: originalEmail.split('@')[0]
     })
-    addMessage.value = `${res.data.email} を追加しました`
+    addMessage.value = `${originalEmail} を追加しました`
+
+    // 3秒後にメッセージを自動で消す
+    if (messageTimer) clearTimeout(messageTimer)
+    messageTimer = setTimeout(() => {
+      addMessage.value = ''
+    }, 3000)
+
     newEmail.value = ''
     newPassword.value = ''
   } catch (error) {
     console.error('追加失敗:', error)
     addMessage.value = 'ユーザー追加に失敗しました'
+
+    if (messageTimer) clearTimeout(messageTimer)
+    messageTimer = setTimeout(() => {
+      addMessage.value = ''
+    }, 3000)
   }
 }
 </script>

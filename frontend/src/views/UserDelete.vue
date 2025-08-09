@@ -41,14 +41,24 @@
       </div>
 
       <div v-if="selectedUser" class="confirm-box">
-        <button class="delete-button" @click="showConfirm = true">選択したユーザーを削除</button>
+        <button
+          class="delete-button"
+          :disabled="isProtectedSelected"
+          @click="showConfirm = true"
+          title="デモ版ではデモ用ユーザーは削除できません"
+        >
+          選択したユーザーを削除
+        </button>
+        <p v-if="isProtectedSelected" class="hint">
+          デモ版ではこのユーザーは削除できません
+        </p>
       </div>
 
       <p v-if="deleteMessage">{{ deleteMessage }}</p>
 
       <div v-if="showConfirm" class="modal-overlay">
         <div class="modal">
-          <p>「{{ selectedUser?.displayName }}」を削除しますか？</p>
+          <p>「{{ selectedUser?.displayName || selectedUser?.email }}」を削除しますか？</p>
           <div class="modal-actions">
             <button class="delete-button" @click="deleteUser">削除</button>
             <button @click="showConfirm = false">キャンセル</button>
@@ -66,6 +76,8 @@ import type { User } from '../components/types'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+const DEMO = import.meta.env.VITE_DEMO_FLAG === 'true' // ← Viteで公開されるのはVITE_のみ
 
 const props = defineProps<{ users: User[] }>()
 const emit = defineEmits<{
@@ -98,12 +110,30 @@ const selectUser = (user: User) => {
   selectedUser.value = user
 }
 
+/** デモ用 削除禁止UID */
+const PROTECTED_UIDS = new Set<string>([
+  '5fvxqbgf4nPN1k1gR1vp2seFzOr1', // 管理者
+  'Mc7myNRJ0HV5jmBh3yRgCwGtkHk2'  // 一般
+])
+
+const isProtectedSelected = computed(() => {
+  if (!DEMO || !selectedUser.value) return false
+  return PROTECTED_UIDS.has(selectedUser.value.uid)
+})
+
 const deleteUser = async () => {
   if (!selectedUser.value) return
   isLoading.value = true
   try {
+    // 二重ガード：モーダル「削除」押下時にもチェック
+    if (DEMO && PROTECTED_UIDS.has(selectedUser.value.uid)) {
+      deleteMessage.value = 'デモ版ではこのユーザーは削除できません'
+      showConfirm.value = false
+      return
+    }
+
     await axios.delete(`${API_BASE_URL}/api/users/${selectedUser.value.uid}`)
-    deleteMessage.value = `${selectedUser.value.displayName} を削除しました`
+    deleteMessage.value = `${selectedUser.value.displayName || selectedUser.value.email} を削除しました`
     selectedUser.value = null
     showConfirm.value = false
     emit('refresh-users')
@@ -215,8 +245,19 @@ const deleteUser = async () => {
   font-size: 1rem;
 }
 
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .delete-button:hover {
   background-color: #b91c1c;
+}
+
+.hint {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
 .modal-overlay {
@@ -277,24 +318,26 @@ const deleteUser = async () => {
   .pagination span {
     font-size: 1.5rem;
   }
+}
 
-  @media (max-width: 600px) {
+@media (max-width: 600px) {
   .section-title {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
-    text-align: center;         /* ← 追加！ */
-    padding-right: 5.0rem;  
+    text-align: center;
+    padding-right: 5.0rem;
   }
 }
 
 @media (max-width: 600px) {
   .pagination {
     margin: 0.2rem 0;
-    justify-content: flex-start; /* ← 中央 → 左寄せに変更！ */
-    padding-left: 6.0rem;        /* ← 左寄せ時の余白調整（任意） */
+    justify-content: flex-start;
+    padding-left: 6.0rem;
   }
 }
 
+@media (max-width: 600px) {
   .delete-button {
     font-size: 0.9rem;
   }

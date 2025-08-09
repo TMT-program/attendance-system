@@ -2,18 +2,20 @@
   <div class="report-container">
     <div class="summary-table">
       <table>
-        <tr>
-          <th>ユーザー名</th>
-          <td>{{ username }}</td>
-        </tr>
-        <tr>
-          <th>勤務時間合計</th>
-          <td>{{ totalWorkTime }}</td>
-        </tr>
-        <tr>
-          <th>休暇日数</th>
-          <td>5/20</td>
-        </tr>
+        <tbody>
+          <tr>
+            <th>ユーザー名</th>
+            <td>{{ username }}</td>
+          </tr>
+          <tr>
+            <th>勤務時間合計</th>
+            <td>{{ totalWorkTime }}</td>
+          </tr>
+          <tr>
+            <th>休暇日数</th>
+            <td>5/20</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -256,7 +258,6 @@ const getStatusClass = (status: string, dayIndex: number) => {
   return isWeekend(dayIndex) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
 }
 </script>
-
 
 <style scoped>
 .report-container {
