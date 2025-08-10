@@ -8,24 +8,26 @@
       <div class="table-wrapper">
         <h2 class="section-title">🗑️ ユーザー削除</h2>
 
-        <table class="user-table">
+        <table class="user-table" role="table" aria-label="ユーザー削除テーブル">
           <thead>
             <tr>
-              <th>名前</th>
-              <th>メールアドレス</th>
-              <th>管理者権限</th>
+              <th scope="col">名前</th>
+              <th scope="col">メールアドレス</th>
+              <th scope="col" class="col-admin">管理者権限</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="user in paginatedUsers"
               :key="user.uid"
-              :class="{ selected: selectedUser?.uid === user.uid }"
-              @click="selectUser(user)"
+              :class="{ selected: isSelected(user) }"
+              @click="selectUser(user, $event)"
             >
-              <td>{{ user.displayName || '(名前なし)' }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.isAdmin ? 'あり' : 'なし' }}</td>
+              <td :title="user.displayName || '(名前なし)'">
+                {{ user.displayName || '(名前なし)' }}
+              </td>
+              <td :title="user.email">{{ user.email }}</td>
+              <td class="col-admin">{{ user.isAdmin ? 'あり' : 'なし' }}</td>
             </tr>
             <tr v-if="paginatedUsers.length === 0">
               <td colspan="3" class="no-data">該当するユーザーがいません</td>
@@ -40,27 +42,31 @@
         </div>
       </div>
 
-      <div v-if="selectedUser" class="confirm-box">
+      <!-- ここに余白を付けてテーブルとボタンがくっつかないようにする -->
+      <div v-if="selectedUsers.length > 0" class="confirm-box">
         <button
           class="delete-button"
           :disabled="isProtectedSelected"
           @click="showConfirm = true"
-          title="デモ版ではデモ用ユーザーは削除できません"
+          :title="isProtectedSelected ? 'デモ版ではデモ用ユーザーは削除できません' : '選択中のユーザーを削除'"
         >
-          選択したユーザーを削除
+          選択したユーザーを削除（{{ selectedUsers.length }}件）
         </button>
         <p v-if="isProtectedSelected" class="hint">
-          デモ版ではこのユーザーは削除できません
+          デモ版では次のユーザーは削除できません：{{ protectedSelectedNames }}
         </p>
       </div>
 
       <p v-if="deleteMessage">{{ deleteMessage }}</p>
 
-      <div v-if="showConfirm" class="modal-overlay">
+      <div v-if="showConfirm" class="modal-overlay" role="dialog" aria-modal="true">
         <div class="modal">
-          <p>「{{ selectedUser?.displayName || selectedUser?.email }}」を削除しますか？</p>
+          <p>
+            次の{{ selectedUsers.length }}件のユーザーを削除しますか？<br />
+            <span class="target-list">{{ selectedNamesPreview }}</span>
+          </p>
           <div class="modal-actions">
-            <button class="delete-button" @click="deleteUser">削除</button>
+            <button class="delete-button" @click="deleteUsers">削除</button>
             <button @click="showConfirm = false">キャンセル</button>
           </div>
         </div>
@@ -76,16 +82,13 @@ import type { User } from '../components/types'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-
-const DEMO = import.meta.env.VITE_DEMO_FLAG === 'true' // ← Viteで公開されるのはVITE_のみ
+const DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 const props = defineProps<{ users: User[] }>()
-const emit = defineEmits<{
-  (e: 'go-back'): void
-  (e: 'refresh-users'): void
-}>()
+const emit = defineEmits<{ (e: 'refresh-users'): void }>()
 
-const selectedUser = ref<User | null>(null)
+/** 複数選択（Ctrl+クリックでトグル、通常クリックは単一選択） */
+const selectedUsers = ref<User[]>([])
 const deleteMessage = ref('')
 const showConfirm = ref(false)
 const isLoading = ref(false)
@@ -99,16 +102,8 @@ const paginatedUsers = computed(() => {
   return props.users.slice(start, start + pageSize)
 })
 
-const prevPage = () => {
-  if (page.value > 1) page.value--
-}
-const nextPage = () => {
-  if (page.value < totalPages.value) page.value++
-}
-
-const selectUser = (user: User) => {
-  selectedUser.value = user
-}
+const prevPage = () => { if (page.value > 1) page.value-- }
+const nextPage = () => { if (page.value < totalPages.value) page.value++ }
 
 /** デモ用 削除禁止UID */
 const PROTECTED_UIDS = new Set<string>([
@@ -116,30 +111,81 @@ const PROTECTED_UIDS = new Set<string>([
   'Mc7myNRJ0HV5jmBh3yRgCwGtkHk2'  // 一般
 ])
 
+/** 行が選択されているか */
+const isSelected = (user: User) => selectedUsers.value.some(u => u.uid === user.uid)
+
+/** Ctrl クリックで複数選択、通常クリックで単一選択 */
+const selectUser = (user: User, e: MouseEvent) => {
+  const ctrl = e.ctrlKey || e.metaKey // mac対応でmetaKeyも許容
+  if (ctrl) {
+    if (isSelected(user)) {
+      selectedUsers.value = selectedUsers.value.filter(u => u.uid !== user.uid)
+    } else {
+      selectedUsers.value = [...selectedUsers.value, user]
+    }
+  } else {
+    // 単一選択
+    if (isSelected(user) && selectedUsers.value.length === 1) {
+      // 同じ行をもう一度通常クリックしたら解除してもOKにする
+      selectedUsers.value = []
+    } else {
+      selectedUsers.value = [user]
+    }
+  }
+}
+
+/** 保護対象が含まれているか（含まれていたら削除ボタンは無効化） */
 const isProtectedSelected = computed(() => {
-  if (!DEMO || !selectedUser.value) return false
-  return PROTECTED_UIDS.has(selectedUser.value.uid)
+  if (!DEMO) return false
+  return selectedUsers.value.some(u => PROTECTED_UIDS.has(u.uid))
 })
 
-const deleteUser = async () => {
-  if (!selectedUser.value) return
+/** 保護対象の表示名（ヒント表示用） */
+const protectedSelectedNames = computed(() => {
+  const names = selectedUsers.value
+    .filter(u => PROTECTED_UIDS.has(u.uid))
+    .map(u => u.displayName || u.email)
+  return names.join(', ')
+})
+
+/** モーダルに表示する選択名（長すぎる場合は先頭5件＋他N件） */
+const selectedNamesPreview = computed(() => {
+  const names = selectedUsers.value.map(u => u.displayName || u.email)
+  if (names.length <= 5) return names.join(', ')
+  const head = names.slice(0, 5).join(', ')
+  return `${head} ほか ${names.length - 5}件`
+})
+
+/** 一括削除 */
+const deleteUsers = async () => {
+  if (selectedUsers.value.length === 0) return
+  if (DEMO && selectedUsers.value.some(u => PROTECTED_UIDS.has(u.uid))) {
+    deleteMessage.value = 'デモ版では保護ユーザーが含まれているため削除できません'
+    showConfirm.value = false
+    return
+  }
+
   isLoading.value = true
   try {
-    // 二重ガード：モーダル「削除」押下時にもチェック
-    if (DEMO && PROTECTED_UIDS.has(selectedUser.value.uid)) {
-      deleteMessage.value = 'デモ版ではこのユーザーは削除できません'
-      showConfirm.value = false
-      return
-    }
+    // まとめて削除（同時送信・結果集計）
+    const targets = selectedUsers.value.map(u => u)
+    const results = await Promise.allSettled(
+      targets.map(u => axios.delete(`${API_BASE_URL}/api/users/${u.uid}`))
+    )
 
-    await axios.delete(`${API_BASE_URL}/api/users/${selectedUser.value.uid}`)
-    deleteMessage.value = `${selectedUser.value.displayName || selectedUser.value.email} を削除しました`
-    selectedUser.value = null
+    const success = results.filter(r => r.status === 'fulfilled').length
+    const fail = results.length - success
+    deleteMessage.value =
+      `削除完了：${success}件 成功${fail > 0 ? `／${fail}件 失敗` : ''}`
+
+    // 成功分を選択から外す・全体をクリア
+    selectedUsers.value = []
     showConfirm.value = false
+
+    // 最新リスト取得
     emit('refresh-users')
   } catch (error) {
-    console.error('削除失敗:', error)
-    deleteMessage.value = 'ユーザー削除に失敗しました'
+    deleteMessage.value = 'ユーザー削除処理中にエラーが発生しました'
     showConfirm.value = false
   } finally {
     isLoading.value = false
@@ -149,66 +195,77 @@ const deleteUser = async () => {
 
 <style scoped>
 .user-section {
-  text-align: center;
+  background-color: #f8fafc;
   padding: 1rem;
 }
 
+/* タイトル */
 .section-title {
-  font-size: 1.8rem;
-  margin: 1rem auto 1.5rem auto;
-  color: #1e3a8a;
+  font-size: 1.9rem;
+  margin-bottom: 1rem;
+  color: #0f172a;
   text-align: center;
-  width: fit-content;
+  font-weight: 700;
 }
 
+/* テーブルコンテナ（外枠＆影） */
 .table-wrapper {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
   overflow-x: auto;
-  margin: 0 auto;
-  max-width: 100%;
-  text-align: center;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
+/* テーブル本体（縦線・左寄せ・ゼブラ・ホバー・選択強調） */
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
   font-size: 0.95rem;
-  text-align: left;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 480px;
-}
-
-.user-table thead {
-  background-color: #f0f4ff;
+  color: #0f172a;
 }
 
 .user-table th,
 .user-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #ddd;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0; /* 列の縦線 */
+  text-align: left; /* 左寄せ */
+  white-space: nowrap;
+}
+
+.user-table th:last-child,
+.user-table td:last-child {
+  border-right: none; /* 最後の列は縦線なし */
+}
+
+.user-table thead th {
+  background: #edf2ff;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.user-table tbody tr:nth-child(odd) {
+  background: #f8fafc;
 }
 
 .user-table tbody tr:hover {
-  background-color: #f5faff;
+  background: #e8f0ff;
   cursor: pointer;
 }
 
 .user-table tbody tr.selected {
-  background-color: #fdecea;
-  border-left: 4px solid #dc2626;
+  background: #fdecea;
+  box-shadow: inset 4px 0 0 #dc2626;
 }
 
-.no-data {
-  text-align: center;
-  color: #888;
-  padding: 1rem 0;
-}
-
+/* ページネーション */
 .pagination {
-  margin: 0.8rem 0;
+  margin: 0.75rem 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -216,139 +273,92 @@ const deleteUser = async () => {
 }
 
 .pagination button {
-  padding: 0.3rem 0.7rem;
-  font-size: 1.1rem;
-  border: 1px solid #1e3a8a;
-  border-radius: 4px;
-  background-color: white;
-  color: #1e3a8a;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.4rem 0.7rem;
 }
 
 .pagination button:hover:not(:disabled) {
-  background-color: #dbeafe;
+  background: #f1f5f9;
 }
 
+/* テーブルとボタンの間隔を確保 */
+.confirm-box {
+  margin-top: 1rem; /* ← これでくっつかない */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* 削除ボタン */
 .delete-button {
   background-color: #dc2626;
-  color: white;
-  padding: 0.5rem 1rem;
+  color: #fff;
+  padding: 0.6rem 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
+  font-weight: 700;
 }
-
+.delete-button:hover {
+  background-color: #b91c1c;
+}
 .delete-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.delete-button:hover {
-  background-color: #b91c1c;
-}
-
+/* 補足テキスト */
 .hint {
-  margin-top: 0.4rem;
   font-size: 0.9rem;
   color: #64748b;
+  text-align: center;
 }
 
+/* モーダル */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.3);
+  inset: 0;
+  background: rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
-
 .modal {
-  background: white;
+  background: #fff;
   padding: 2rem;
-  border-radius: 10px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
   max-width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
-
+.modal .target-list {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #334155;
+  font-weight: 600;
+}
 .modal-actions {
   margin-top: 1rem;
   display: flex;
-  justify-content: center;
   gap: 1rem;
+  justify-content: center;
 }
 
-/* スマホ用調整 */
+/* スマホ調整 */
 @media (max-width: 600px) {
-  .table-wrapper,
   .user-table {
-    transform: scale(0.8);
+    transform: scale(0.7);
     transform-origin: top left;
   }
-
-  .section-title {
-    font-size: 1.4rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .user-table {
-    margin-top: 0.01rem;
-  }
-
-  .user-table th,
-  .user-table td {
-    padding: 8px;
-  }
-
   .pagination {
     margin: 0.2rem 0;
   }
-
-  .pagination span {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .section-title {
-    font-size: 1.4rem;
-    margin-bottom: 0.5rem;
-    text-align: center;
-    padding-right: 5.0rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .pagination {
-    margin: 0.2rem 0;
-    justify-content: flex-start;
-    padding-left: 6.0rem;
-  }
-}
-
-@media (max-width: 600px) {
   .delete-button {
-    font-size: 0.9rem;
-  }
-
-  .modal {
-    padding: 1.2rem;
     font-size: 0.95rem;
-  }
-
-  .modal-actions button {
-    font-size: 0.9rem;
   }
 }
 </style>

@@ -9,7 +9,7 @@
         ← 戻る
       </button>
       <div class="title">
-        <BadgeCheck class="icon" /> 勤怠管理システム
+        <BadgeCheck class="icon" /> 勤怠管理システム(デモ用システムです。動作確認にご利用ください。)
       </div>
     </div>
     <div class="user-section" v-if="user">
@@ -132,7 +132,7 @@ const goBack = () => {
   color: #1e3a8a;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  max-width: clamp(120px, 24vw, 320px);
 }
 
 .user-section button {
