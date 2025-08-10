@@ -4,23 +4,42 @@
       <Megaphone class="icon" /> 周知事項
     </h1>
 
-    <!-- アップロード -->
-    <div v-if="isAdmin" class="upload-section">
-      <button @click="toggleUploader">
-        {{ showUploader ? 'アップロード領域を閉じる' : 'アップロード' }}
-      </button>
-
-      <div v-if="showUploader" class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
-        <p>ここにPDFファイルをドラッグ&ドロップしてください</p>
-
-        <ul v-if="droppedFiles.length > 0">
-          <li v-for="file in droppedFiles" :key="file.name">{{ file.name }}</li>
-        </ul>
-
-        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-
-        <button @click="uploadFiles" :disabled="droppedFiles.length === 0">アップロード実行</button>
+    <!-- アップロードセクション（管理者のみ表示） -->
+    <div v-if="isAdmin" class="uploader-card">
+      <div class="uploader-header">
+        <h2>PDFアップロード</h2>
+        <button class="primary-btn" @click="toggleUploader">
+          {{ showUploader ? 'アップロード領域を閉じる' : 'アップロード' }}
+        </button>
       </div>
+
+      <transition name="fade">
+        <div
+          v-if="showUploader"
+          class="upload-area"
+          @dragover.prevent
+          @drop.prevent="handleDrop"
+        >
+          <p class="upload-instruction">ここにPDFファイルをドラッグ&ドロップしてください</p>
+
+          <ul v-if="droppedFiles.length > 0" class="file-list">
+            <li v-for="file in droppedFiles" :key="file.name" class="file-item">
+              {{ file.name }}
+            </li>
+          </ul>
+
+          <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+
+          <div class="upload-actions">
+            <button class="primary-btn" @click="uploadFiles" :disabled="droppedFiles.length === 0">
+              アップロード実行
+            </button>
+          </div>
+          <p class="demo-note" v-if="IS_DEMO">
+            ※ デモ用システムのため実際のアップロードは行われません
+          </p>
+        </div>
+      </transition>
     </div>
 
     <!-- 読み込み中表示 -->
@@ -28,27 +47,30 @@
 
     <!-- 一覧 -->
     <div v-else>
-      <div v-if="announcements.length > 0">
-        <table class="announcement-table">
+      <div v-if="announcements.length > 0" class="table-wrapper">
+        <table class="announcement-table" role="table" aria-label="周知事項PDF一覧">
           <thead>
             <tr>
-              <th>ファイル名</th>
-              <th v-if="isAdmin">削除</th>
+              <th scope="col">ファイル名</th>
+              <th v-if="isAdmin" scope="col" class="col-action">削除</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="file in announcements" :key="file.name">
-              <td class="file-name">
+              <td class="file-name" :title="file.name">
                 <a :href="file.url" target="_blank" rel="noopener">{{ file.name }}</a>
               </td>
-              <td v-if="isAdmin">
-                <button class="delete-btn" @click="deleteFile(file.name)">削除</button>
+              <td v-if="isAdmin" class="col-action">
+                <button class="danger-btn" @click="deleteFile(file.name)">削除</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div v-else class="no-data">今は表示できるPDFはありません</div>
+
+      <div v-else class="no-data-card">
+        今は表示できるPDFはありません
+      </div>
     </div>
   </div>
 </template>
@@ -67,7 +89,7 @@ const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 const isAdmin = ref(false)
 const uid = ref<string | null>(null)
-const announcements = ref<{ name: string, url: string }[]>([])
+const announcements = ref<{ name: string; url: string }[]>([])
 const isLoading = ref(false)
 
 const showUploader = ref(false)
@@ -99,8 +121,8 @@ const uploadFiles = async () => {
     return
   }
 
-  const existingSet = new Set(announcements.value.map(file => file.name))
-  const duplicated = droppedFiles.value.find(file => existingSet.has(file.name))
+  const existingSet = new Set(announcements.value.map((file) => file.name))
+  const duplicated = droppedFiles.value.find((file) => existingSet.has(file.name))
 
   if (duplicated) {
     errorMessage.value = '既存のPDFファイルと同名のファイルはアップロードできません'
@@ -108,7 +130,7 @@ const uploadFiles = async () => {
   }
 
   const formData = new FormData()
-  droppedFiles.value.forEach(file => formData.append('files', file))
+  droppedFiles.value.forEach((file) => formData.append('files', file))
 
   try {
     isLoading.value = true
@@ -171,108 +193,221 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== ページ全体（ユーザー管理と統一トーン） ===== */
 .announcement-page {
   padding: 2rem;
-  max-width: 800px;
+  max-width: 960px;
   margin: 0 auto;
-  font-family: 'Segoe UI', sans-serif;
-  color: #1e3a8a;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .page-title {
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  padding-left: 12px;
-}
-
-.icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  stroke: #1e3a8a;
-}
-
-.upload-section button {
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem 1.2rem;
-  border: none;
-  border-radius: 5px;
+  gap: 0.6rem;
+  font-weight: 800;
   margin-bottom: 1rem;
-  cursor: pointer;
+  color: #0f172a;
+}
+.icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  stroke: #0f172a;
+}
+
+/* ===== アップローダー（カード風・統一トーン） ===== */
+.uploader-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+.uploader-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.uploader-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
 }
 
 .upload-area {
-  border: 2px dashed #aaa;
+  border: 2px dashed #94a3b8;
   padding: 1rem;
-  margin-bottom: 1rem;
-  background-color: #f9fafb;
+  margin-top: 0.75rem;
+  background-color: #f8fafc;
   text-align: center;
+  border-radius: 10px;
 }
-.upload-area ul {
+.upload-instruction {
+  margin: 0.25rem 0 0.5rem;
+}
+.file-list {
   text-align: left;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+  padding-left: 1rem;
 }
-.upload-area .error {
-  color: red;
+.file-item {
+  list-style: disc;
+}
+.error {
+  color: #dc2626;
   margin-top: 0.5rem;
+  font-weight: 600;
+}
+.upload-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+.demo-note {
+  margin-top: 0.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* 統一ボタンスタイル */
+.primary-btn {
+  padding: 0.55rem 1rem;
+  background-color: #1e3a8a;
+  color: white;
+  border: 1px solid #1e3a8a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.primary-btn:hover { filter: brightness(1.05); }
+.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.danger-btn {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+.danger-btn:hover { background-color: #b91c1c; }
+
+/* ===== テーブル（ユーザー管理と同トーン・くっきり） ===== */
+.table-wrapper {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #cbd5e1; /* 外枠でくっきり */
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .announcement-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* separateで罫線を強調 */
+  border-spacing: 0;
   font-size: 0.95rem;
-  background-color: #f4f6f8;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  overflow: hidden;
+  color: #0f172a;
+  min-width: 520px;
 }
-.announcement-table th {
+
+.announcement-table thead th {
+  position: sticky; /* スクロールしてもヘッダー固定 */
+  top: 0;
+  z-index: 1;
+  background: #edf2ff; /* ほんのり濃い見出し */
   text-align: left;
-  background-color: #dbeafe;
-  padding: 10px 12px;
-  border-bottom: 1px solid #bbb;
-  font-weight: 600;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-bottom: 2px solid #94a3b8; /* 下線を太めに */
+  border-right: 1px solid #e2e8f0;   /* 縦線 */
+  white-space: nowrap;
 }
+.announcement-table thead th:last-child {
+  border-right: none;
+}
+
+.announcement-table th,
 .announcement-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;  /* セル下線を明確に */
+  border-right: 1px solid #e2e8f0;   /* 縦線 */
+  text-align: left;                  /* 左寄せ */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.announcement-table .file-name {
-  text-align: left;
-}
-.announcement-table tr:hover {
-  background-color: #eef3ff;
-}
-
-.delete-btn {
-  background-color: #dc2626;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.4rem 0.8rem;
-  cursor: pointer;
-  font-weight: 600;
-}
-.delete-btn:hover {
-  background-color: #b91c1c;
+.announcement-table th:last-child,
+.announcement-table td:last-child {
+  border-right: none; /* 最後の列は縦線なし */
 }
 
-a {
+/* ゼブラ＋ホバー */
+.announcement-table tbody tr:nth-child(odd) {
+  background: #f8fafc;
+}
+.announcement-table tbody tr:hover {
+  background: #e8f0ff;
+}
+
+/* 列幅の目安（ファイル名は広め） */
+.announcement-table td:first-child {
+  min-width: 340px;
+}
+.col-action {
+  min-width: 120px;
+  text-align: left; /* ボタン列も左寄せで統一 */
+}
+
+/* ファイルリンク */
+.announcement-table .file-name a {
   color: #2563eb;
   text-decoration: none;
 }
-a:hover {
+.announcement-table .file-name a:hover {
   text-decoration: underline;
 }
 
-.no-data {
-  color: #555;
-  font-size: 0.95rem;
-  text-align: center;
+/* データなしカード（統一トーン） */
+.no-data-card {
+  margin-top: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
   padding: 1rem;
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* フェード（アップローダー開閉用） */
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+
+/* ===== スマホ最適化（あなたの方針を踏襲） ===== */
+@media (max-width: 600px) {
+  .table-wrapper {
+    transform: scale(0.7);
+    transform-origin: top left;
+  }
+  .page-title {
+    font-size: 1.5rem;
+  }
+  .uploader-card {
+    transform: scale(0.95);
+    transform-origin: top left;
+  }
 }
 </style>

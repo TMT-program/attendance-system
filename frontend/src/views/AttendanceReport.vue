@@ -33,6 +33,7 @@
           :year="year"
           :month="month"
           :records="records"
+          :username="username"
           @prevMonth="prevMonth"
           @nextMonth="nextMonth"
         />
@@ -72,6 +73,7 @@ const tabs = ref<TabType[]>(['勤怠', '勤務実績'])
 const currentTab = ref<TabType>('勤怠')
 
 const uid = ref<string | null>(null)
+const username = ref<string>('') // ← 追加：ログイン中ユーザー名表示用
 const attendance = ref<{ start?: string; end?: string }>({})
 const isAdmin = ref(false)
 const selectedUser = ref<any | null>(null)
@@ -108,6 +110,7 @@ onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       uid.value = user.uid
+      username.value = user.displayName || user.email || '' // ← 取得して保持
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       if (userDoc.exists()) {
         isAdmin.value = !!userDoc.data().isAdmin
@@ -186,99 +189,83 @@ const nextMonth = () => {
 <style scoped>
 .attendance-report {
   padding: 2rem 1rem;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
-  font-family: 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: #0f172a;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
-  gap: 0.5rem;
+  margin-bottom: 1rem;
+  gap: 0.6rem;
 }
 
 .icon {
   width: 28px;
   height: 28px;
-  color: #1e3a8a;
+  color: #0f172a;
 }
 
 .title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e3a8a;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #0f172a;
   white-space: nowrap;
 }
 
+/* タブUI（トーン統一） */
 .tab-menu {
   display: flex;
   justify-content: center;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cbd5e1;
   margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .tab-button {
-  background: none;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
-  color: #1e3a8a;
-  transition: all 0.2s;
-  position: relative;
-  outline: none;
-  white-space: nowrap;
+  color: #0f172a;
+  border-radius: 8px 8px 0 0;
 }
-
 .tab-button.active {
-  color: #2563eb;
-  font-weight: 600;
-}
-
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 25%;
-  width: 50%;
-  height: 2px;
-  background-color: #2563eb;
-  border-radius: 2px;
+  background: #edf2ff;
+  border-bottom-color: #edf2ff;
 }
 
 .tab-content {
   min-height: 300px;
 }
 
-/* スマホ用調整 */
+/* スマホ */
 @media (max-width: 600px) {
   .attendance-report {
-    transform: scale(0.85);
+    transform: scale(0.9);
     transform-origin: top left;
   }
-
   .icon {
     width: 22px;
     height: 22px;
   }
-
   .title {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
   }
-
   .tab-button {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     padding: 0.5rem 0.8rem;
   }
-
   .tab-menu {
     gap: 0.3rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
   }
 }
 </style>

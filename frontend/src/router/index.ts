@@ -47,22 +47,26 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/UserMenu',
     name: 'UserMenu',
-    component: UserMenu
+    component: UserMenu,
+    meta: { requiresAuth: true }, // 🔐 認証が必要
   },
   {
     path: '/UserList',
     name: 'UserList',
-    component: UserList
+    component: UserList,
+    meta: { requiresAuth: true }, // 🔐 認証が必要
   },
   {
     path: '/UserAdd',
     name: 'UserAdd',
-    component: UserAdd
+    component: UserAdd,
+    meta: { requiresAuth: true }, // 🔐 認証が必要
   },
   {
     path: '/UserDelete',
     name: 'UserDelete',
-    component: UserDelete
+    component: UserDelete,
+    meta: { requiresAuth: true }, // 🔐 認証が必要
   }
 ]
 

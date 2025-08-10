@@ -3,6 +3,20 @@ import { admin } from '../firebase'
 
 const router = express.Router()
 
+// 祝日ライブラリ（TS型なしでも動くように require）← 追加
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const holidayJp = require('@holiday-jp/holiday_jp') as {
+  between: (start: Date, end: Date) => { date: Date; name: string }[]
+}
+
+// YYYY-MM-DD 文字列に整形するヘルパー ← 追加
+const toYmd = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // JST日付を抽出する関数（+9時間補正なし）
 const getJstDateParts = (isoString: string) => {
   const date = new Date(isoString)
@@ -306,6 +320,41 @@ router.post('/revoke', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('勤務報告取消エラー:', error)
     res.status(500).json({ error: '勤務報告の取消に失敗しました' })
+  }
+})
+
+/** =========================
+ *  祝日取得API（追加）
+ *  GET /holidays?year=YYYY&month=MM
+ *  返却: ["YYYY-MM-DD", ...]
+ *  実際のURLはこのルーターのマウントパスに依存（例: /api/attendance/holidays）
+ * ========================= */
+router.get('/holidays', async (req: Request, res: Response) => {
+  try {
+    const year = parseInt(String(req.query.year || ''), 10)
+    const month = parseInt(String(req.query.month || ''), 10)
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({ error: 'year と month(1-12) が必要です' })
+    }
+
+    // 月初〜月末（ローカルタイム）を作成
+    const start = new Date(year, month - 1, 1)
+    const end = new Date(year, month, 0)
+
+    // ライブラリで月内の祝日一覧を取得
+    const holidays = holidayJp.between(start, end) || []
+
+    // YYYY-MM-DD 配列で返す
+    const ymdList = holidays
+      .map(h => toYmd(h.date))
+      // 念のため月が一致するものだけ（ライブラリの仕様変更対策）
+      .filter(ymd => parseInt(ymd.slice(0, 4), 10) === year && parseInt(ymd.slice(5, 7), 10) === month)
+
+    res.json(ymdList)
+  } catch (error) {
+    console.error('祝日取得エラー:', error)
+    // ライブラリ未導入やその他例外時は 500 を返す（フロント側は土日のみでフォールバック）
+    res.status(500).json({ error: '祝日の取得に失敗しました' })
   }
 })
 

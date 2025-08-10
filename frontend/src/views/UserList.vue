@@ -4,8 +4,13 @@
       <h2 class="section-title">📋 ユーザー一覧</h2>
 
       <div class="search-box">
-        <input type="text" v-model="searchKeyword" placeholder="検索ワードを入力" />
-        <button @click="searchUsers">検索</button>
+        <input
+          type="text"
+          v-model="searchKeyword"
+          placeholder="検索ワードを入力"
+          aria-label="ユーザー検索"
+        />
+        <button @click="searchUsers" aria-label="検索">検索</button>
       </div>
     </div>
 
@@ -15,24 +20,29 @@
 
     <template v-else>
       <div class="table-wrapper">
-        <table class="user-table">
+        <table class="user-table" role="table" aria-label="ユーザー一覧テーブル">
           <thead>
             <tr>
-              <th>名前</th>
-              <th>メールアドレス</th>
-              <th>管理者権限</th>
+              <th scope="col">名前</th>
+              <th scope="col">メールアドレス</th>
+              <th scope="col" class="col-admin">管理者権限</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="user in paginatedUsers" :key="user.uid">
-              <td>{{ user.displayName || '(名前なし)' }}</td>
-              <td>{{ user.email }}</td>
-              <td>
-                <input
-                  type="checkbox"
-                  :checked="user.isAdmin"
-                  @change="toggleAdmin(user, $event)"
-                />
+              <td :title="user.displayName || '(名前なし)'">
+                {{ user.displayName || '(名前なし)' }}
+              </td>
+              <td :title="user.email">{{ user.email }}</td>
+              <td class="col-admin">
+                <label class="check-wrap" :aria-label="`管理者権限: ${user.displayName || user.email}`">
+                  <input
+                    type="checkbox"
+                    :checked="user.isAdmin"
+                    @change="toggleAdmin(user, $event)"
+                  />
+                  <span class="check-label">{{ user.isAdmin ? 'ON' : 'OFF' }}</span>
+                </label>
               </td>
             </tr>
             <tr v-if="paginatedUsers.length === 0">
@@ -43,9 +53,9 @@
 
         <div class="responsive-wrapper">
           <div class="pagination">
-            <button @click="prevPage" :disabled="page === 1">←</button>
-            <span>{{ page }} / {{ totalPages }}</span>
-            <button @click="nextPage" :disabled="page === totalPages">→</button>
+            <button @click="prevPage" :disabled="page === 1" aria-label="前のページ">←</button>
+            <span aria-live="polite">{{ page }} / {{ totalPages }}</span>
+            <button @click="nextPage" :disabled="page === totalPages" aria-label="次のページ">→</button>
           </div>
         </div>
       </div>
@@ -84,7 +94,7 @@ const isLoading = ref(false)
 
 const filteredUsers = computed(() =>
   props.users.filter(user =>
-    user.displayName.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+    (user.displayName || '').toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
     user.email.toLowerCase().includes(searchKeyword.value.toLowerCase())
   )
 )
@@ -147,9 +157,10 @@ const toggleAdmin = async (user: User, event: Event) => {
 .user-section {
   background-color: #f8fafc;
   padding: 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
+  border-radius: 10px;
   max-width: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .responsive-wrapper {
@@ -157,117 +168,190 @@ const toggleAdmin = async (user: User, event: Event) => {
 }
 
 .section-title {
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  color: #1e3a8a;
+  font-size: 1.9rem;
+  margin-bottom: 1rem;
+  color: #0f172a;
   text-align: center;
   white-space: nowrap;
+  font-weight: 700;
 }
 
 .search-box {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   justify-content: center;
 }
 
-.search-box input,
-.search-box button {
-  padding: 0.5rem;
-  min-width: 180px;
-  max-width: 300px;
+.search-box input {
+  padding: 0.6rem 0.75rem;
+  min-width: 220px;
+  max-width: 360px;
   width: 100%;
   box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.search-box input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .search-box button {
+  padding: 0.6rem 1rem;
   background-color: #1e3a8a;
   color: white;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid #1e3a8a;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.search-box button:hover {
+  filter: brightness(1.05);
 }
 
 .table-wrapper {
   width: 100%;
-  overflow-x: auto;
-  table-layout: fixed;
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .user-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  max-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.95rem;
+  color: #0f172a;
 }
 
-@media (max-width: 600px) {
-  .user-table {
-    margin-top: 0.01rem; /* ←スマホだけ詰める！ */
-  }
+.user-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf2ff;
+  text-align: left;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-bottom: 2px solid #94a3b8;
+  border-right: 1px solid #e2e8f0; /* 縦線 */
+  white-space: nowrap;
+}
+
+.user-table thead th:last-child {
+  border-right: none;
 }
 
 .user-table th,
 .user-table td {
-  padding: 12px;
-  border-bottom: 1px solid #ccc;
-  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0; /* 縦線追加 */
+  text-align: left; /* 左寄せ */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.user-table thead {
-  background-color: #f0f4ff;
+.user-table th:last-child,
+.user-table td:last-child {
+  border-right: none;
+}
+
+.user-table tbody tr:nth-child(odd) {
+  background: #f8fafc;
+}
+.user-table tbody tr:hover {
+  background: #e8f0ff;
+}
+
+.user-table td:nth-child(1) { min-width: 160px; }
+.user-table td:nth-child(2) { min-width: 220px; }
+.user-table .col-admin { min-width: 140px; text-align: left; }
+
+.check-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.check-wrap input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+.check-wrap .check-label {
+  font-weight: 600;
+  color: #334155;
 }
 
 .no-data {
   text-align: center;
-  color: #999;
+  color: #64748b;
+  padding: 18px 0;
+  font-weight: 600;
 }
 
 .pagination {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
 }
+.pagination button {
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+.pagination button:enabled:hover {
+  background: #f1f5f9;
+}
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pagination span {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
 
 @media (max-width: 600px) {
-  .user-table {
-    transform: scale(0.7);
-    transform-origin: top left;
-  }
-
+  .user-table,
   .responsive-wrapper {
     transform: scale(0.7);
     transform-origin: top left;
   }
-
+  .user-table { margin-top: 0.01rem; }
   .section-title {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
   }
-
   .search-box {
     flex-direction: column;
     align-items: center;
     margin-bottom: 0.5rem;
   }
-
   .pagination {
     margin: 0.2rem 0;
   }
-
   .pagination span {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
-
   .user-table th,
   .user-table td {
-    padding: 8px;
+    padding: 10px 12px;
   }
 }
 </style>

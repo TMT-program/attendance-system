@@ -1,18 +1,19 @@
 <template>
   <div class="report-container">
-    <div class="summary-table">
-      <table>
+    <!-- サマリー：ユーザー名など（左寄せのまま） -->
+    <div class="summary-card">
+      <table class="summary-table" role="table" aria-label="勤務実績サマリー">
         <tbody>
           <tr>
-            <th>ユーザー名</th>
-            <td>{{ username }}</td>
+            <th scope="row">ユーザー名</th>
+            <td>{{ displayUsername }}</td>
           </tr>
           <tr>
-            <th>勤務時間合計</th>
+            <th scope="row">勤務時間合計</th>
             <td>{{ totalWorkTime }}</td>
           </tr>
           <tr>
-            <th>休暇日数</th>
+            <th scope="row">休暇日数</th>
             <td>5/20</td>
           </tr>
         </tbody>
@@ -20,83 +21,98 @@
     </div>
 
     <div class="main-content">
+      <!-- 月切替 -->
       <div class="month-selector">
-        <button @click="prevMonth">←</button>
+        <button class="nav-btn" @click="prevMonth">←</button>
         <span>{{ year }}年{{ month }}月</span>
-        <button @click="nextMonth">→</button>
+        <button class="nav-btn" @click="nextMonth">→</button>
       </div>
 
       <LoadingSpinner v-if="isLoading" />
 
-      <table class="record-table" v-else>
-        <thead>
-          <tr>
-            <th>状態</th>
-            <th>日付</th>
-            <th>曜日</th>
-            <th>出勤</th>
-            <th>退勤</th>
-            <th>勤務時間</th>
-            <th>作業内容</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="entry in records"
-            :key="entry.fullDate"
-            :class="getStatusClass(entry.status, entry.dayIndex)"
-          >
-            <td>{{ entry.status }}</td>
-            <td>{{ entry.date }}</td>
-            <td>{{ entry.day }}</td>
-            <td>{{ entry.start || '-' }}</td>
-            <td>{{ entry.end || '-' }}</td>
-            <td>{{ entry.workTime || '-' }}</td>
-            <td>
-              <select v-model="entry.task" :disabled="entry.status !== '未承認'">
-                <option value="">-</option>
-                <option v-for="opt in taskOptions" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-            </td>
-            <td>
-              <button
-                class="action-button"
-                v-if="entry.status === '未承認'"
-                @click="submitReport(entry)"
-              >
-                提出
-              </button>
-              <button
-                class="action-button"
-                v-else-if="entry.status === '承認待'"
-                @click="cancelSubmission(entry)"
-              >
-                取消
-              </button>
-              <span v-else>-</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- 実績テーブル（中央揃え・デフォ白背景・状態色・縦線・stickyヘッダー） -->
+      <div v-else class="table-wrapper">
+        <table class="record-table" role="table" aria-label="勤務実績テーブル">
+          <thead>
+            <tr>
+              <th scope="col">状態</th>
+              <th scope="col">日付</th>
+              <th scope="col">曜日</th>
+              <th scope="col">出勤</th>
+              <th scope="col">退勤</th>
+              <th scope="col">勤務時間</th>
+              <th scope="col">作業内容</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="entry in records"
+              :key="entry.fullDate"
+              :class="getStatusClass(entry.status, entry.dayIndex, entry.fullDate)"
+            >
+              <td>{{ entry.status }}</td>
+              <td :title="entry.fullDate">{{ entry.date }}</td>
+              <td>{{ entry.day }}</td>
+              <td>{{ entry.start || '-' }}</td>
+              <td>{{ entry.end || '-' }}</td>
+              <td>{{ entry.workTime || '-' }}</td>
+              <td>
+                <select v-model="entry.task" :disabled="entry.status !== '未承認'">
+                  <option value="">-</option>
+                  <option v-for="opt in taskOptions" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </td>
+              <td>
+                <button
+                  class="primary-btn"
+                  v-if="entry.status === '未承認'"
+                  @click="submitReport(entry)"
+                >
+                  提出
+                </button>
+                <button
+                  class="danger-btn"
+                  v-else-if="entry.status === '承認待'"
+                  @click="cancelSubmission(entry)"
+                >
+                  取消
+                </button>
+                <span v-else>-</span>
+              </td>
+            </tr>
+            <tr v-if="records.length === 0">
+              <td class="no-data" colspan="8">データがありません</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import axios from 'axios'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-const props = defineProps<{ uid: string }>()
+
+const props = defineProps<{
+  uid: string
+  /** 親から渡されるログイン中ユーザー名（未指定なら "ユーザー名" を表示） */
+  username?: string
+}>()
 
 const year = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
-const username = ref('ユーザー名')
 
-const taskOptions = ['現場作業', '資料作成', '営業', '顧客対応', '休暇']
+/** 表示ユーザー名（親 props 優先、なければ既定文字列） */
+const displayUsername = computed(() => (props.username ?? '').trim() || 'ユーザー名')
 
+const taskOptions = ['現場作業', '資料作成', '営業', '顧客対応', '休暇'] as const
+
+type StatusType = '未承認' | '承認待' | '承認済'
 interface RecordEntry {
   date: string
   fullDate: string
@@ -106,24 +122,36 @@ interface RecordEntry {
   end?: string
   workTime?: string
   task?: string
-  status: '未承認' | '承認待' | '承認済'
+  status: StatusType
 }
 
 const records = ref<RecordEntry[]>([])
 const totalWorkTime = ref('00:00')
 const isLoading = ref(false)
 
+/** 祝日セット（YYYY-MM-DD の Set）— 取得できなければ空のまま */
+const holidaySet = ref<Set<string>>(new Set())
+
+/** JST向け：ローカル暦日で YYYY-MM-DD 文字列（UTC変換による日付ズレ防止） */
+const toLocalYMD = (y: number, m: number, d: number) =>
+  `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+
+/** 勤務時間差分 "HH:MM" を返す */
 const calculateWorkDuration = (startStr?: string, endStr?: string): string | undefined => {
   if (!startStr || !endStr) return undefined
   const [sh, sm] = startStr.split(':').map(Number)
   const [eh, em] = endStr.split(':').map(Number)
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return undefined
   const startMin = sh * 60 + sm
   const endMin = eh * 60 + em
-  if (endMin < startMin) return undefined
+  if (endMin <= startMin) return undefined
   const diffMin = endMin - startMin
-  return `${String(Math.floor(diffMin / 60)).padStart(2, '0')}:${String(diffMin % 60).padStart(2, '0')}`
+  const h = Math.floor(diffMin / 60)
+  const m = diffMin % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** 合計勤務時間算出 */
 const computeTotalWorkTime = () => {
   let totalMin = 0
   for (const entry of records.value) {
@@ -137,10 +165,29 @@ const computeTotalWorkTime = () => {
   totalWorkTime.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** 祝日取得（存在すれば使用、失敗時は空のまま） */
+const fetchHolidays = async (y: number, m: number) => {
+  try {
+    const res = await axios.get<string[]>(
+      `${API_BASE_URL}/api/attendance/holidays`,
+      { params: { year: y, month: String(m).padStart(2, '0') } }
+    )
+    const arr = Array.isArray(res.data) ? res.data : []
+    holidaySet.value = new Set(arr)
+  } catch (e) {
+    // 取得に失敗したら土日のみ赤運用
+    holidaySet.value = new Set()
+  }
+}
+
+/** 月のデータ取得（JSTで暦日/曜日を決定） */
 const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
   isLoading.value = true
   try {
+    // 可能なら祝日を取得（失敗しても続行）
+    await fetchHolidays(year.value, month.value)
+
     const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
       params: {
         uid: props.uid,
@@ -152,14 +199,15 @@ const fetchRecords = async () => {
     const result: RecordEntry[] = []
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateObj = new Date(Date.UTC(year.value, month.value - 1, d))
-      const full = dateObj.toISOString().slice(0, 10)
-      const dayIndex = dateObj.getUTCDay()
+      // JST基準：ローカル時刻のDateで曜日を決定
+      const local = new Date(year.value, month.value - 1, d) // 0=1月
+      const full = toLocalYMD(year.value, month.value, d)   // YYYY-MM-DD（JST暦日）
+      const dayIndex = local.getDay()                       // 0=日, ... ,6=土（JST）
       const dayNames = ['日', '月', '火', '水', '木', '金', '土']
 
       const raw = data[full] || {}
-      const start = raw.start
-      const end = raw.end
+      const start: string | undefined = raw.start
+      const end: string | undefined = raw.end
       const workTime = calculateWorkDuration(start, end)
 
       result.push({
@@ -170,8 +218,8 @@ const fetchRecords = async () => {
         start,
         end,
         workTime,
-        task: raw.task || '',
-        status: raw.status || '未承認',
+        task: (raw.task ?? '').toString(),
+        status: (raw.status as StatusType) || '未承認',
       })
     }
 
@@ -187,6 +235,7 @@ const fetchRecords = async () => {
 onMounted(fetchRecords)
 watch([year, month], fetchRecords)
 
+/** 月移動 */
 const prevMonth = () => {
   if (month.value === 1) {
     year.value--
@@ -204,28 +253,44 @@ const nextMonth = () => {
   }
 }
 
+/** 週末判定（日:0, 土:6）※ JST基準 */
 const isWeekend = (i: number) => i === 0 || i === 6
+/** 祝日判定 */
+const isHoliday = (ymd: string) => holidaySet.value.has(ymd)
 
+/**
+ * ステータスによる行クラス
+ * - 承認済は青、承認待は黄（週末/祝日でもこちらを優先）
+ * - 未承認は平日=白、土日/祝日=赤
+ */
+const getStatusClass = (status: StatusType, dayIndex: number, ymd: string) => {
+  if (status === '承認済') return 'status-approved'
+  if (status === '承認待') return 'status-pending'
+  // 未承認のみ週末/祝日で赤
+  return (isWeekend(dayIndex) || isHoliday(ymd)) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
+}
+
+/** 提出 */
 const submitReport = async (entry: RecordEntry) => {
-  if (!entry.task) {
-    alert('作業内容を選択してください')
+  // 作業内容の厳密チェック（空文字・空白のみ・「-」は不可）
+  const taskVal = (entry.task ?? '').toString().trim()
+  if (!taskVal || taskVal === '-') {
+    alert('作業内容を選択してください（空欄や「-」は不可）')
     return
   }
-
-  if (entry.task !== '休暇') {
+  if (taskVal !== '休暇') {
     if (!entry.start || !entry.end) {
       alert('出勤時間と退勤時間を入力してください')
       return
     }
   }
-
   try {
     await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
-      date: entry.fullDate,
+      date: entry.fullDate, // JSTの暦日キー
       start: entry.start,
       end: entry.end,
-      task: entry.task,
+      task: taskVal,
       status: '承認待'
     })
     entry.status = '承認待'
@@ -235,99 +300,198 @@ const submitReport = async (entry: RecordEntry) => {
   }
 }
 
+/** 取消 */
 const cancelSubmission = async (entry: RecordEntry) => {
   try {
     await axios.post(`${API_BASE_URL}/api/attendance/report`, {
       uid: props.uid,
-      date: entry.fullDate,
+      date: entry.fullDate, // JSTの暦日キー
       start: entry.start,
       end: entry.end,
       task: entry.task,
       status: '未承認'
     })
-    entry.status = '未承認'
   } catch (error) {
     console.error('勤務報告の取消に失敗しました:', error)
     alert('取消に失敗しました')
+  } finally {
+    entry.status = '未承認'
   }
-}
-
-const getStatusClass = (status: string, dayIndex: number) => {
-  if (status === '承認済') return 'status-approved'
-  if (status === '承認待') return 'status-pending'
-  return isWeekend(dayIndex) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
 }
 </script>
 
 <style scoped>
+/* レイアウト */
 .report-container {
   display: flex;
   align-items: flex-start;
-  gap: 2rem;
+  gap: 1rem;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
-.summary-table {
-  min-width: 200px;
-  margin-top: 2.8rem;
-}
-.summary-table table {
-  border-collapse: collapse;
-  width: 100%;
-}
-.summary-table th,
-.summary-table td {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
-  text-align: left;
-  font-size: 0.95rem;
-}
-.summary-table th {
-  background-color: #f0f0f0;
-}
+
 .main-content {
   flex: 1;
 }
+
+/* ===== サマリー（カード＋縦線＋左寄せ） ===== */
+.summary-card {
+  min-width: 240px;
+  margin-top: 0.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+.summary-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.95rem;
+}
+.summary-table th,
+.summary-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0; /* 縦線 */
+  text-align: left; /* サマリーは左寄せ */
+  white-space: nowrap;
+}
+.summary-table tr:last-child th,
+.summary-table tr:last-child td { border-bottom: none; }
+.summary-table th:last-child,
+.summary-table td:last-child { border-right: none; }
+.summary-table th { background: #f8fafc; font-weight: 700; width: 120px; }
+
+/* ===== 月切替（統一トーンボタン） ===== */
 .month-selector {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin: 0 0 0.5rem 0;
+  align-items: center;
 }
+.nav-btn {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.nav-btn:hover { background: #f1f5f9; }
+.month-selector span { font-weight: 700; }
+
+/* ===== テーブル（中央揃え・デフォ白背景・縦線・stickyヘッダー） ===== */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto; /* 念のため残す（狭小画面対策） */
+  border: 1px solid #cbd5e1; /* 外枠でくっきり */
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
 .record-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* separateで罫線を強調 */
+  border-spacing: 0;
+  font-size: 0.92rem; /* 少し小さめにして横幅を節約 */
+  color: #0f172a;
+  min-width: 680px; /* コンパクト化：ボタンが見切れにくい */
 }
+
+.record-table thead th {
+  position: sticky; /* スクロールしてもヘッダー固定 */
+  top: 0;
+  z-index: 1;
+  background: #edf2ff; /* 見出し色をやや濃く */
+  text-align: center;    /* 中央揃え */
+  font-weight: 700;
+  padding: 10px 12px;    /* コンパクト化 */
+  border-bottom: 2px solid #94a3b8; /* 太めの下線 */
+  border-right: 1px solid #e2e8f0;  /* 縦線 */
+  white-space: nowrap;
+}
+.record-table thead th:last-child { border-right: none; }
+
 .record-table th,
 .record-table td {
-  border: 1px solid #ddd;
-  padding: 0.6rem;
-  text-align: center;
+  padding: 8px 10px;           /* コンパクト化 */
+  border-bottom: 1px solid #e2e8f0; /* セル罫線を明確に */
+  border-right: 1px solid #e2e8f0;  /* 縦線 */
+  text-align: center;                /* 中央揃え */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.record-table th {
-  background-color: #f3f4f6;
-}
-.status-unsubmitted {
-  background-color: white;
-}
-.status-unsubmitted-weekend {
-  background-color: #ffecec;
-}
-.status-pending {
-  background-color: #fff9c4;
-}
-.status-approved {
-  background-color: #d9f99d;
-}
-.action-button {
-  width: 64px;
-  padding: 0.4rem;
-  font-size: 0.9rem;
-  background-color: #1e40af;
-  color: white;
-  border: none;
-  border-radius: 4px;
+.record-table th:last-child,
+.record-table td:last-child { border-right: none; }
+
+/* 列幅の目安（全体をコンパクトに） */
+.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 80px; }  /* 状態 */
+.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 76px; }  /* 日付 */
+.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 56px; }  /* 曜日 */
+.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 76px; }  /* 出勤 */
+.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 76px; }  /* 退勤 */
+.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 88px; }  /* 勤務時間 */
+.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 120px; } /* 作業内容 */
+.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 92px; }  /* 操作 */
+
+/* デフォルトは白背景（ゼブラなし） */
+.record-table tbody tr { background: #ffffff; }
+
+/* ===== 状態色（強いセレクタ＆最後に配置） =====
+   承認済：青、承認待：黄、未承認：白、未承認の土日/祝日：赤 */
+.record-table tbody tr.status-unsubmitted         { background-color: #ffffff; } /* 未承認 平日=白 */
+.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; } /* 未承認 週末/祝日=赤 */
+.record-table tbody tr.status-pending             { background-color: #fff1a6; } /* 承認待=黄（視認性UP） */
+.record-table tbody tr.status-approved            { background-color: #dbeafe; } /* 承認済=青 */
+
+/* ===== ボタン（提出=青、取消=赤） ===== */
+.primary-btn {
+  padding: 0.4rem 0.8rem;
+  background-color: #2563eb;  /* 青 */
+  color: #ffffff;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
 }
-.action-button:hover {
-  background-color: #1d4ed8;
+.primary-btn:hover { filter: brightness(1.05); }
+
+.danger-btn {
+  padding: 0.4rem 0.8rem;
+  background-color: #ef4444;  /* 赤 */
+  color: #ffffff;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.danger-btn:hover { filter: brightness(1.05); }
+
+/* “データなし”表示 */
+.no-data {
+  text-align: center;
+  color: #64748b;
+  padding: 12px 0;
+  font-weight: 600;
+}
+
+/* ===== スマホ最適化 ===== */
+@media (max-width: 600px) {
+  .report-container { flex-direction: column; gap: 0.75rem; }
+  .summary-card,
+  .table-wrapper { transform: scale(0.9); transform-origin: top left; }
 }
 </style>
