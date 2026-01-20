@@ -30,10 +30,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../firebase'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+
+onMounted(() => {
+  document.documentElement.classList.add('no-scroll') // htmlにも付ける（より確実）
+  document.body.classList.add('no-scroll')
+})
+
+onBeforeUnmount(() => {
+  document.documentElement.classList.remove('no-scroll')
+  document.body.classList.remove('no-scroll')
+})
 
 const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
@@ -86,7 +96,6 @@ async function handleRegister() {
 }
 
 .login-wrapper {
-  /* 画面中央にカードを配置 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +106,7 @@ async function handleRegister() {
   padding: 16px;
   background-color: #f8fafc;
 
-  /* 縦横スクロールバーを出さない */
+  box-sizing: border-box; /* ★これが重要：padding込みで100dvhに収める */
   overflow: hidden;
 }
 
