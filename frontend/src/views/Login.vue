@@ -2,6 +2,7 @@
   <div class="login-wrapper">
     <div class="login-card">
       <h1 class="login-title">TMT 勤怠管理システム</h1>
+
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="email">メールアドレス</label>
@@ -13,7 +14,9 @@
           <input id="password" type="password" v-model="password" required placeholder="パスワードを入力" />
         </div>
 
-        <button type="submit" :disabled="loading">{{ loading ? 'ログイン中...' : 'ログイン' }}</button>
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'ログイン中...' : 'ログイン' }}
+        </button>
 
         <p class="error-message" v-show="true">{{ error || '　' }}</p>
 
@@ -55,6 +58,7 @@ async function handleLogin() {
 
 async function handleRegister() {
   error.value = ''
+
   // デモモード時は登録機能を無効化
   if (IS_DEMO) {
     error.value = 'デモ用システムのため新規登録機能は無効にしています。'
@@ -74,17 +78,27 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-.login-wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  min-height: 100dvh;
-  padding-top: -30vh;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  background-color: #f8fafc;
+/* scoped内で幅計算のズレをなくす（左右余白が均等に見えるようにする） */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+.login-wrapper {
+  /* 画面中央にカードを配置 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 100dvh;
+  width: 100%;
+
+  padding: 16px;
+  background-color: #f8fafc;
+
+  /* 縦横スクロールバーを出さない */
+  overflow: hidden;
 }
 
 .login-card {
@@ -95,10 +109,9 @@ async function handleRegister() {
   width: 100%;
   max-width: 420px;
   border: 1px solid #d1d5db;
-  box-sizing: border-box;
-  max-height: 100%;
-  overflow: auto;
-  margin: 0 auto;
+
+  /* カード自身からもスクロールバーを出さない */
+  overflow: hidden;
 }
 
 .login-title {
@@ -107,19 +120,33 @@ async function handleRegister() {
   font-weight: bold;
   color: #1e3a8a;
   margin-bottom: 2rem;
+
+  /* 変にズレないように */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.login-form .form-group {
-  margin-bottom: 1.5rem;
+/* ★ここが今回の肝：フォームを中央固定幅のカラムにする */
+.login-form {
   width: 100%;
-  box-sizing: border-box;
+  max-width: 320px; /* 入力欄やボタンをカード中央に“塊”として置く */
+  margin: 0 auto;   /* 左右余白を完全均等にする */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ラベル/入力/ボタン/テキスト全部を中央寄せの基準に */
+}
+
+.form-group {
+  width: 100%;
+  margin-bottom: 1.2rem;
 }
 
 label {
   display: block;
+  width: 100%;
+  text-align: center; /* ラベルも中央 */
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #1e293b;
@@ -151,6 +178,7 @@ button[type='submit'] {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  margin-top: 0.2rem;
 }
 
 button[type='submit']:hover:not(:disabled) {
@@ -163,19 +191,23 @@ button[type='submit']:disabled {
 }
 
 .error-message {
-  max-width: 100%;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  width: 100%;
   min-height: 1.5em;
   margin-top: 1rem;
+
   color: #dc2626;
   font-weight: bold;
   text-align: center;
+
+  /* 長文でもカードからはみ出さない */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
   padding: 0 0.5rem;
 }
 
 .register-link {
+  width: 100%;
   margin-top: 1.5rem;
   text-align: center;
   font-size: 0.9rem;
@@ -211,6 +243,11 @@ button[type='submit']:disabled {
     font-size: 1.4rem;
     white-space: normal;
     text-align: center;
+  }
+
+  /* スマホは少し幅を広く取る（押しやすさUP） */
+  .login-form {
+    max-width: 100%;
   }
 }
 </style>
