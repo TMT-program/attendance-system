@@ -8,9 +8,11 @@
       >
         ← 戻る
       </button>
-      <div class="title">
-        <BadgeCheck class="icon" /> 勤怠管理システム
-      </div>
+        <div class="title">
+          <BadgeCheck class="icon" />
+          <span class="title-full">勤怠管理システム</span>
+          <span class="title-short">勤怠</span>
+        </div>
     </div>
     <div class="user-section" v-if="user">
       <span class="username">
@@ -116,12 +118,37 @@ const goBack = () => {
 
   display: flex;
   align-items: center;
+  gap: 0.25rem;
 
-  min-width: 0;              /* ✅ 省略表示に必須 */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
   white-space: nowrap;
 }
+
+.title-full {
+  display: inline;
+}
+
+.title-short {
+  display: none;
+}
+
+/* スマホ向け */
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.05rem;
+  }
+
+  /* フルタイトルは非表示 */
+  .title-full {
+    display: none;
+  }
+
+  /* 短縮タイトルを表示 */
+  .title-short {
+    display: inline;
+  }
+}
+
 
 .title .icon {
   width: 1.5rem;
