@@ -66,7 +66,12 @@
 
             <div class="card-row">
               <span class="label">メール</span>
-              <span class="value mono" :title="user.email">{{ user.email }}</span>
+              <span
+                class="value mono scrollable"
+                :title="user.email"
+              >
+                {{ user.email }}
+              </span>
             </div>
 
             <div class="card-row admin-row">
@@ -448,10 +453,32 @@ const toggleAdmin = async (user: User, event: Event) => {
 .value {
   font-size: 0.95rem;
   color: #0f172a;
+
+  /* ✅ 左寄せで統一（中央に見える問題対策） */
+  text-align: left;
+  justify-self: start;
+
+  /* PCでは今まで通り省略 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ✅ スマホのときだけ「横スクロールで全文確認」 */
+@media (max-width: 600px) {
+  .value {
+    overflow-x: auto;          /* 横スクロール */
+    overflow-y: hidden;
+    text-overflow: clip;       /* …をやめる */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* スクロールバーが邪魔なら “見た目だけ” 消せる（任意） */
+  .value::-webkit-scrollbar {
+    height: 6px;
+  }
+}
+
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
