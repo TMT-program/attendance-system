@@ -1,6 +1,5 @@
 <template>
   <div class="user-management">
-    <AppHeader :onBack="showHeaderBack ? goBackToMenu : undefined" />
     <h1 class="page-title">👥 ユーザー管理</h1>
 
     <LoadingSpinner v-if="isLoading" />
@@ -33,7 +32,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import axios from 'axios'
-import AppHeader from '../components/AppHeader.vue'
 import UserMenu from './UserMenu.vue'
 import UserList from './UserList.vue'
 import UserAdd from './UserAdd.vue'

@@ -20,7 +20,8 @@
 
     <template v-else>
       <div class="table-wrapper">
-        <table class="user-table" role="table" aria-label="ユーザー一覧テーブル">
+        <!-- ✅ PC/タブレット：テーブル表示 -->
+        <table class="user-table pc-only" role="table" aria-label="ユーザー一覧テーブル">
           <thead>
             <tr>
               <th scope="col">名前</th>
@@ -51,6 +52,37 @@
           </tbody>
         </table>
 
+        <!-- ✅ スマホ：カード表示 -->
+        <div class="mobile-only">
+          <div v-if="paginatedUsers.length === 0" class="no-data">該当するユーザーがいません</div>
+
+          <div v-for="user in paginatedUsers" :key="user.uid" class="user-card">
+            <div class="card-row">
+              <span class="label">名前</span>
+              <span class="value" :title="user.displayName || '(名前なし)'">
+                {{ user.displayName || '(名前なし)' }}
+              </span>
+            </div>
+
+            <div class="card-row">
+              <span class="label">メール</span>
+              <span class="value mono" :title="user.email">{{ user.email }}</span>
+            </div>
+
+            <div class="card-row admin-row">
+              <span class="label">管理者</span>
+              <label class="check-wrap" :aria-label="`管理者権限: ${user.displayName || user.email}`">
+                <input
+                  type="checkbox"
+                  :checked="user.isAdmin"
+                  @change="toggleAdmin(user, $event)"
+                />
+                <span class="check-label">{{ user.isAdmin ? 'ON' : 'OFF' }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div class="responsive-wrapper">
           <div class="pagination">
             <button @click="prevPage" :disabled="page === 1" aria-label="前のページ">←</button>
@@ -63,8 +95,9 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
@@ -163,10 +196,16 @@ const toggleAdmin = async (user: User, event: Event) => {
   text-rendering: optimizeLegibility;
 }
 
+/* =========================
+   共通ラッパー
+========================= */
 .responsive-wrapper {
   transition: transform 0.2s ease;
 }
 
+/* =========================
+   タイトル
+========================= */
 .section-title {
   font-size: 1.9rem;
   margin-bottom: 1rem;
@@ -176,6 +215,9 @@ const toggleAdmin = async (user: User, event: Event) => {
   font-weight: 700;
 }
 
+/* =========================
+   検索ボックス
+========================= */
 .search-box {
   display: flex;
   flex-wrap: wrap;
@@ -214,6 +256,9 @@ const toggleAdmin = async (user: User, event: Event) => {
   filter: brightness(1.05);
 }
 
+/* =========================
+   テーブルラッパー
+========================= */
 .table-wrapper {
   width: 100%;
   overflow: auto;
@@ -225,6 +270,9 @@ const toggleAdmin = async (user: User, event: Event) => {
     0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
+/* =========================
+   PC用テーブル
+========================= */
 .user-table {
   width: 100%;
   border-collapse: separate;
@@ -242,7 +290,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   font-weight: 700;
   padding: 12px 14px;
   border-bottom: 2px solid #94a3b8;
-  border-right: 1px solid #e2e8f0; /* 縦線 */
+  border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 
@@ -254,8 +302,8 @@ const toggleAdmin = async (user: User, event: Event) => {
 .user-table td {
   padding: 12px 14px;
   border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0; /* 縦線追加 */
-  text-align: left; /* 左寄せ */
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -269,30 +317,48 @@ const toggleAdmin = async (user: User, event: Event) => {
 .user-table tbody tr:nth-child(odd) {
   background: #f8fafc;
 }
+
 .user-table tbody tr:hover {
   background: #e8f0ff;
 }
 
-.user-table td:nth-child(1) { min-width: 160px; }
-.user-table td:nth-child(2) { min-width: 220px; }
-.user-table .col-admin { min-width: 140px; text-align: left; }
+.user-table td:nth-child(1) {
+  min-width: 160px;
+}
 
+.user-table td:nth-child(2) {
+  min-width: 220px;
+}
+
+.user-table .col-admin {
+  min-width: 140px;
+  text-align: left;
+}
+
+/* =========================
+   チェックボックス
+========================= */
 .check-wrap {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
+
 .check-wrap input {
   width: 18px;
   height: 18px;
   accent-color: #2563eb;
   cursor: pointer;
 }
+
 .check-wrap .check-label {
   font-weight: 600;
   color: #334155;
 }
 
+/* =========================
+   データなし表示
+========================= */
 .no-data {
   text-align: center;
   color: #64748b;
@@ -300,6 +366,9 @@ const toggleAdmin = async (user: User, event: Event) => {
   font-weight: 600;
 }
 
+/* =========================
+   ページネーション
+========================= */
 .pagination {
   margin: 0.75rem 0;
   display: flex;
@@ -307,6 +376,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   align-items: center;
   gap: 1rem;
 }
+
 .pagination button {
   min-width: 2.2rem;
   min-height: 2.2rem;
@@ -315,43 +385,134 @@ const toggleAdmin = async (user: User, event: Event) => {
   background: #ffffff;
   cursor: pointer;
 }
+
 .pagination button:enabled:hover {
   background: #f1f5f9;
 }
+
 .pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .pagination span {
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
+/* =========================
+   表示切り替え
+========================= */
+.pc-only {
+  display: table;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* =========================
+   スマホ用カードUI
+========================= */
+.user-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.card-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 0.95rem;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.admin-row .check-wrap {
+  justify-self: start;
+}
+
+/* =========================
+   スマホ対応（600px以下）
+========================= */
 @media (max-width: 600px) {
+  .pc-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  /* scale方式は廃止（崩れ防止） */
   .user-table,
   .responsive-wrapper {
-    transform: scale(0.7);
-    transform-origin: top left;
+    transform: none;
   }
-  .user-table { margin-top: 0.01rem; }
+
+  .user-section {
+    padding: 0.75rem;
+  }
+
   .section-title {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     margin-bottom: 0.5rem;
   }
+
   .search-box {
     flex-direction: column;
     align-items: center;
     margin-bottom: 0.5rem;
   }
+
+  .search-box input {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .search-box button {
+    width: 100%;
+    max-width: 420px;
+  }
+
   .pagination {
-    margin: 0.2rem 0;
+    margin: 0.4rem 0;
   }
+
   .pagination span {
-    font-size: 1.6rem;
-  }
-  .user-table th,
-  .user-table td {
-    padding: 10px 12px;
+    font-size: 1rem;
   }
 }
+
 </style>
