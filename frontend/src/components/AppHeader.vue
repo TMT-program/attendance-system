@@ -9,7 +9,7 @@
         ← 戻る
       </button>
       <div class="title">
-        <BadgeCheck class="icon" /> 勤怠管理システム(デモ用システムです。動作確認にご利用ください。)
+        <BadgeCheck class="icon" /> 勤怠管理システム
       </div>
     </div>
     <div class="user-section" v-if="user">
