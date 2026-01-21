@@ -66,25 +66,30 @@ const goBack = () => {
 
 <style scoped>
 .app-header {
-  position: fixed;
+  position: fixed; /* ✅ sticky → fixed */
   top: 0;
   left: 0;
   width: 100%;
-  height: 64px;
+  height: var(--app-header-h, 64px); /* ✅ App.vue と同じ変数で高さ統一 */
   z-index: 1000;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   background-color: #fef2f2;
   border-bottom: 2px solid #dc2626;
+
   padding: 0 1.5rem;
   box-sizing: border-box;
-  overflow-x: hidden;
+
+  overflow: hidden; /* ✅ 高さ固定で中身がはみ出しても被りに見えない */
 }
 
 .left-section {
   display: flex;
   align-items: center;
+  min-width: 0; /* ✅ ellipsis を効かせるため必須 */
 }
 
 .back-button {
@@ -96,7 +101,8 @@ const goBack = () => {
   margin-right: 1rem;
   padding: 0;
   outline: none;
-  white-space: nowrap; /* ← 折り返さない */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .back-button:hover {
@@ -107,9 +113,14 @@ const goBack = () => {
   font-size: 1.4rem;
   font-weight: bold;
   color: #dc2626;
+
   display: flex;
   align-items: center;
-  white-space: nowrap; /* ← タイトルも折り返さない */
+
+  min-width: 0;              /* ✅ 省略表示に必須 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .title .icon {
@@ -123,8 +134,10 @@ const goBack = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  white-space: nowrap; /* ← 折り返さない */
+
+  white-space: nowrap;
   overflow: hidden;
+  min-width: 0;
 }
 
 .username {
@@ -147,6 +160,7 @@ const goBack = () => {
   cursor: pointer;
   transition: background-color 0.2s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .user-section button:hover {
@@ -160,7 +174,7 @@ const goBack = () => {
   }
 
   .title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 
   .username {

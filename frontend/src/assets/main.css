@@ -1,11 +1,9 @@
-/* ブラウザ標準の余白を完全に消す */
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
 }
 
-/* ログイン画面表示中だけスクロール禁止 */
 body.no-scroll {
   overflow: hidden;
 }
