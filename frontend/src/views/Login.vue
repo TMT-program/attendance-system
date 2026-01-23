@@ -32,12 +32,16 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { auth } from '../firebase'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, db } from '../firebase'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 
 onMounted(() => {
-  document.documentElement.classList.add('no-scroll') // htmlにも付ける（より確実）
+  document.documentElement.classList.add('no-scroll')
   document.body.classList.add('no-scroll')
+
+  // ✅ ログイン画面表示時にFirebaseを“軽く起こす”
+  warmupFirebase()
 })
 
 onBeforeUnmount(() => {
@@ -52,6 +56,43 @@ const password = ref('')
 const loading = ref(false)
 const error = ref('')
 const router = useRouter()
+
+/**
+ * ✅ Firebase “ウォームアップ”
+ * - 失敗してもログインUIには影響させない（握りつぶし）
+ * - 画面表示時に1回だけ走ればOK
+ *
+ * 方式:
+ * 1) Authの初期化イベントを1回待つ（軽い）
+ * 2) Firestoreを1回叩く（起動を促進）
+ *
+ * 注意:
+ * - Firestoreのread権限が厳しいと getDoc が permission-denied になる可能性あり
+ *   → その場合でも catch で握りつぶすので動作は止まらない
+ *   → もし確実に成功させたいなら「誰でもread可のwarmupドキュメント」を用意すると良い
+ */
+let warmedUp = false
+async function warmupFirebase() {
+  if (warmedUp) return
+  warmedUp = true
+
+  try {
+    // ① Auth初期化が走るきっかけになりやすい（onAuthStateChangedを1回だけ待って解除）
+    await new Promise<void>((resolve) => {
+      const unsub = onAuthStateChanged(auth, () => {
+        unsub()
+        resolve()
+      })
+    })
+
+    // ② Firestoreに軽いアクセス（存在しないドキュメントでもOK）
+    //    ※ ルール次第で permission-denied になることはある（その場合でもOK）
+    await getDoc(doc(db, '__warmup__', 'ping'))
+  } catch (e) {
+    // ログには出すけど、UIには出さない（ログイン体験を壊さない）
+    console.debug('[warmup] firebase warmup skipped/failed:', e)
+  }
+}
 
 async function handleLogin() {
   error.value = ''
@@ -69,7 +110,6 @@ async function handleLogin() {
 async function handleRegister() {
   error.value = ''
 
-  // デモモード時は登録機能を無効化
   if (IS_DEMO) {
     error.value = 'デモ用システムのため新規登録機能は無効にしています。'
     return
@@ -88,7 +128,6 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-/* scoped内で幅計算のズレをなくす（左右余白が均等に見えるようにする） */
 *,
 *::before,
 *::after {
@@ -106,7 +145,7 @@ async function handleRegister() {
   padding: 16px;
   background-color: #f8fafc;
 
-  box-sizing: border-box; /* ★これが重要：padding込みで100dvhに収める */
+  box-sizing: border-box;
   overflow: hidden;
 }
 
@@ -119,7 +158,6 @@ async function handleRegister() {
   max-width: 420px;
   border: 1px solid #d1d5db;
 
-  /* カード自身からもスクロールバーを出さない */
   overflow: hidden;
 }
 
@@ -130,21 +168,19 @@ async function handleRegister() {
   color: #1e3a8a;
   margin-bottom: 2rem;
 
-  /* 変にズレないように */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ★ここが今回の肝：フォームを中央固定幅のカラムにする */
 .login-form {
   width: 100%;
-  max-width: 320px; /* 入力欄やボタンをカード中央に“塊”として置く */
-  margin: 0 auto;   /* 左右余白を完全均等にする */
+  max-width: 320px;
+  margin: 0 auto;
 
   display: flex;
   flex-direction: column;
-  align-items: center; /* ラベル/入力/ボタン/テキスト全部を中央寄せの基準に */
+  align-items: center;
 }
 
 .form-group {
@@ -155,7 +191,7 @@ async function handleRegister() {
 label {
   display: block;
   width: 100%;
-  text-align: center; /* ラベルも中央 */
+  text-align: center;
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #1e293b;
@@ -208,7 +244,6 @@ button[type='submit']:disabled {
   font-weight: bold;
   text-align: center;
 
-  /* 長文でもカードからはみ出さない */
   word-break: break-word;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -254,7 +289,6 @@ button[type='submit']:disabled {
     text-align: center;
   }
 
-  /* スマホは少し幅を広く取る（押しやすさUP） */
   .login-form {
     max-width: 100%;
   }
