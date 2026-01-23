@@ -31,9 +31,8 @@
       <LoadingSpinner v-if="isLoading" />
 
       <!-- ✅ PCで横スクロールを出さず、スマホで縮小するため table-fit を追加 -->
-      <div v-else class="table-wrapper">
-        <table class="record-table table-fit" role="table" aria-label="勤務実績テーブル">
-
+      <div v-else class="table-wrapper table-fit">
+        <table class="record-table" role="table" aria-label="勤務実績テーブル">
           <thead>
             <tr>
               <th scope="col">状態</th>
@@ -518,16 +517,25 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
-  .record-table.table-fit {
-    transform: scale(0.6);      /* 好きな縮尺 */
+  .report-container { flex-direction: column; gap: 0.75rem; }
+
+  .summary-card {
+    transform: scale(0.92);
     transform-origin: top left;
   }
 
-  /* wrapper はそのまま横スクロールで受ける */
+  /* ✅ テーブル縮小は "table-fit" に当てる（PC影響なし） */
+  .table-fit {
+    transform: scale(0.1);          /* ← 好きな縮尺に調整 */
+    transform-origin: top left;
+    width: calc(100% / 0.1);        /* ✅ 縮小分の補正：右端見切れ防止 */
+  }
+
+  /* wrapper 側は縮小しない（見切れの原因になるため） */
   .table-wrapper {
-    overflow-x: auto;
+    transform: none;
+    padding-right: 0;
   }
 }
-
 
 </style>
