@@ -519,11 +519,16 @@ const cancelSubmission = async (entry: RecordEntry) => {
 @media (max-width: 600px) {
   .report-container { flex-direction: column; gap: 0.75rem; }
 
-  /* ✅ スマホは縮小して横幅を収める */
-  .table-wrapper { overflow-x: hidden; }
-  .table-fit { transform: scale(0.72); }
+  .summary-card {
+    transform: scale(0.92);
+    transform-origin: top left;
+  }
 
-  /* サマリーも少しコンパクトに */
-  .summary-card { min-width: unset; }
+  .table-wrapper {
+    transform: scale(0.84);     /* ✅ ここを少し強める（0.9 → 0.84） */
+    transform-origin: top left;
+    padding-right: 10px;        /* ✅ 右端が欠ける/ギリギリ対策 */
+    box-sizing: border-box;
+  }
 }
 </style>
