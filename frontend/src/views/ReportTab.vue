@@ -30,8 +30,8 @@
 
       <LoadingSpinner v-if="isLoading" />
 
-      <!-- 実績テーブル（中央揃え・デフォ白背景・状態色・縦線・stickyヘッダー） -->
-      <div v-else class="table-wrapper">
+      <!-- ✅ PCで横スクロールを出さず、スマホで縮小するため table-fit を追加 -->
+      <div v-else class="table-wrapper table-fit">
         <table class="record-table" role="table" aria-label="勤務実績テーブル">
           <thead>
             <tr>
@@ -195,7 +195,10 @@ const fetchRecords = async () => {
         month: String(month.value).padStart(2, '0'),
       },
     })
-    const data = res.data || {}
+
+    // ✅ インデックスアクセスの型エラー回避：Record<string, any> として扱う
+    const data = (res.data ?? {}) as Record<string, any>
+
     const result: RecordEntry[] = []
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -205,7 +208,7 @@ const fetchRecords = async () => {
       const dayIndex = local.getDay()                       // 0=日, ... ,6=土（JST）
       const dayNames = ['日', '月', '火', '水', '木', '金', '土']
 
-      const raw = data[full] || {}
+      const raw = (data[full] ?? {}) as Record<string, any>
       const start: string | undefined = raw.start
       const end: string | undefined = raw.end
       const workTime = calculateWorkDuration(start, end)
@@ -333,6 +336,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 .main-content {
   flex: 1;
+  min-width: 0;
+  padding-right: 6px;
+  box-sizing: border-box;
 }
 
 /* ===== サマリー（カード＋縦線＋左寄せ） ===== */
@@ -387,11 +393,12 @@ const cancelSubmission = async (entry: RecordEntry) => {
 .nav-btn:hover { background: #f1f5f9; }
 .month-selector span { font-weight: 700; }
 
-/* ===== テーブル（中央揃え・デフォ白背景・縦線・stickyヘッダー） ===== */
+/* ===== テーブルラッパー ===== */
 .table-wrapper {
   width: 100%;
-  overflow-x: auto; /* 念のため残す（狭小画面対策） */
-  border: 1px solid #cbd5e1; /* 外枠でくっきり */
+  max-width: 100%; /* ★追加：親幅を超えない */
+  overflow-x: auto;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow:
@@ -399,66 +406,86 @@ const cancelSubmission = async (entry: RecordEntry) => {
     0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
-.record-table {
+/* ✅ デフォルトは縮小しない（PC） */
+.table-fit {
   width: 100%;
-  border-collapse: separate; /* separateで罫線を強調 */
-  border-spacing: 0;
-  font-size: 0.92rem; /* 少し小さめにして横幅を節約 */
-  color: #0f172a;
-  min-width: 680px; /* コンパクト化：ボタンが見切れにくい */
+  transform: none;
+  transform-origin: top left;
 }
 
+/* ===== テーブル（PCで横幅に収める） ===== */
+.record-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+  min-width: 640px; /* ★680→640（まずはこれ） */
+}
+
+
 .record-table thead th {
-  position: sticky; /* スクロールしてもヘッダー固定 */
+  position: sticky;
   top: 0;
   z-index: 1;
-  background: #edf2ff; /* 見出し色をやや濃く */
-  text-align: center;    /* 中央揃え */
+  background: #edf2ff;
+  text-align: center;
   font-weight: 700;
-  padding: 10px 12px;    /* コンパクト化 */
-  border-bottom: 2px solid #94a3b8; /* 太めの下線 */
-  border-right: 1px solid #e2e8f0;  /* 縦線 */
+  padding: 10px 12px;
+  border-bottom: 2px solid #94a3b8;
+  border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 .record-table thead th:last-child { border-right: none; }
 
 .record-table th,
 .record-table td {
-  padding: 8px 10px;           /* コンパクト化 */
-  border-bottom: 1px solid #e2e8f0; /* セル罫線を明確に */
-  border-right: 1px solid #e2e8f0;  /* 縦線 */
-  text-align: center;                /* 中央揃え */
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  text-align: center;
   white-space: nowrap;
+
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .record-table th:last-child,
 .record-table td:last-child { border-right: none; }
 
-/* 列幅の目安（全体をコンパクトに） */
-.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 80px; }  /* 状態 */
-.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 76px; }  /* 日付 */
-.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 56px; }  /* 曜日 */
-.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 76px; }  /* 出勤 */
-.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 76px; }  /* 退勤 */
-.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 88px; }  /* 勤務時間 */
-.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 120px; } /* 作業内容 */
-.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 92px; }  /* 操作 */
+/* ✅ PCで横幅を収める列幅配分（割合） */
+.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 10%; } /* 状態 */
+.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 8%;  } /* 日付 */
+.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 6%;  } /* 曜日 */
+.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 9%;  } /* 出勤 */
+.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 9%;  } /* 退勤 */
+.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 10%; } /* 勤務時間 */
+.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 26%; } /* 作業内容（広め） */
+.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 12%; } /* 操作 */
+
+.record-table select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+}
 
 /* デフォルトは白背景（ゼブラなし） */
 .record-table tbody tr { background: #ffffff; }
 
-/* ===== 状態色（強いセレクタ＆最後に配置） =====
-   承認済：青、承認待：黄、未承認：白、未承認の土日/祝日：赤 */
-.record-table tbody tr.status-unsubmitted         { background-color: #ffffff; } /* 未承認 平日=白 */
-.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; } /* 未承認 週末/祝日=赤 */
-.record-table tbody tr.status-pending             { background-color: #fff1a6; } /* 承認待=黄（視認性UP） */
-.record-table tbody tr.status-approved            { background-color: #dbeafe; } /* 承認済=青 */
+/* ===== 状態色 ===== */
+.record-table tbody tr.status-unsubmitted         { background-color: #ffffff; }
+.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; }
+.record-table tbody tr.status-pending             { background-color: #fff1a6; }
+.record-table tbody tr.status-approved            { background-color: #dbeafe; }
 
 /* ===== ボタン（提出=青、取消=赤） ===== */
 .primary-btn {
   padding: 0.4rem 0.8rem;
-  background-color: #2563eb;  /* 青 */
+  background-color: #2563eb;
   color: #ffffff;
   border: 1px solid #2563eb;
   border-radius: 8px;
@@ -470,7 +497,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 .danger-btn {
   padding: 0.4rem 0.8rem;
-  background-color: #ef4444;  /* 赤 */
+  background-color: #ef4444;
   color: #ffffff;
   border: 1px solid #ef4444;
   border-radius: 8px;
@@ -491,7 +518,12 @@ const cancelSubmission = async (entry: RecordEntry) => {
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
   .report-container { flex-direction: column; gap: 0.75rem; }
-  .summary-card,
-  .table-wrapper { transform: scale(0.9); transform-origin: top left; }
+
+  /* ✅ スマホは縮小して横幅を収める */
+  .table-wrapper { overflow-x: hidden; }
+  .table-fit { transform: scale(0.72); }
+
+  /* サマリーも少しコンパクトに */
+  .summary-card { min-width: unset; }
 }
 </style>
