@@ -1,88 +1,106 @@
 <template>
   <div class="confirm-report-tab">
-    <!-- サマリー（UIトーン統一：カード） -->
-    <div class="summary-card">
-      <table class="summary-table" role="table" aria-label="勤務実績サマリー">
-        <tbody>
-          <tr>
-            <th scope="row">ユーザー名</th>
-            <td>{{ user.displayName }}</td>
-          </tr>
-          <tr>
-            <th scope="row">対象年月</th>
-            <td>{{ year }}年{{ month }}月</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- ✅ スマホ時に「全部まとめて中央縮小」するためのラッパー -->
+    <div class="responsive-wrapper">
+      <div class="center-area">
+        <div class="scaled-area">
+          <!-- サマリー（UIトーン統一：カード） -->
+          <div class="summary-card">
+            <table class="summary-table" role="table" aria-label="勤務実績サマリー">
+              <tbody>
+                <tr>
+                  <th scope="row">ユーザー名</th>
+                  <td>{{ user.displayName }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">対象年月</th>
+                  <td>{{ year }}年{{ month }}月</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-    <!-- 月切替 -->
-    <div class="month-selector">
-      <button class="nav-btn" @click="prevMonth">←</button>
-      <span>{{ year }}年{{ month }}月</span>
-      <button class="nav-btn" @click="nextMonth">→</button>
-    </div>
+          <!-- 月切替 -->
+          <div class="month-selector">
+            <button class="nav-btn" @click="prevMonth">←</button>
+            <span>{{ year }}年{{ month }}月</span>
+            <button class="nav-btn" @click="nextMonth">→</button>
+          </div>
 
-    <!-- CSV出力 -->
-    <div class="button-group">
-      <button class="csv-button" @click="downloadCSV">CSV出力</button>
-    </div>
+          <!-- CSV出力 -->
+          <div class="button-group">
+            <button class="csv-button" @click="downloadCSV">CSV出力</button>
+          </div>
 
-    <LoadingSpinner v-if="isLoading" />
+          <LoadingSpinner v-if="isLoading" />
 
-    <!-- 実績テーブル（中央揃え・白背景・状態色・縦線・stickyヘッダー） -->
-    <div v-else class="table-wrapper">
-      <table class="record-table" role="table" aria-label="勤務実績テーブル（管理者確認）">
-        <thead>
-          <tr>
-            <th scope="col">日付</th>
-            <th scope="col">曜日</th>
-            <th scope="col">出勤</th>
-            <th scope="col">退勤</th>
-            <th scope="col">作業内容</th>
-            <th scope="col">状態</th>
-            <th scope="col">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="entry in records"
-            :key="entry.fullDate"
-            :class="getStatusClass(entry.status, entry.dayIndex, entry.fullDate)"
-          >
-            <td :title="entry.fullDate">{{ entry.date }}</td>
-            <td>{{ entry.day }}</td>
-            <td>{{ entry.start || '-' }}</td>
-            <td>{{ entry.end || '-' }}</td>
-            <td>{{ entry.task || '-' }}</td>
-            <td>{{ entry.status }}</td>
-            <td>
-              <div class="action-buttons">
-                <button
-                  v-if="entry.status === '承認待'"
-                  class="primary-btn"
-                  @click="approve(entry)"
-                >承認</button>
-                <button
-                  v-if="entry.status === '承認待'"
-                  class="danger-btn"
-                  @click="reject(entry)"
-                >却下</button>
-                <button
-                  v-if="entry.status === '承認済'"
-                  class="secondary-btn"
-                  @click="revoke(entry)"
-                >取消</button>
-                <span v-if="entry.status === '未承認'">-</span>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="records.length === 0">
-            <td class="no-data" colspan="7">データがありません</td>
-          </tr>
-        </tbody>
-      </table>
+          <!-- 実績テーブル（中央揃え・白背景・状態色・縦線・stickyヘッダー） -->
+          <div v-else class="table-scroll">
+            <div class="table-wrapper">
+              <table class="record-table" role="table" aria-label="勤務実績テーブル（管理者確認）">
+                <thead>
+                  <tr>
+                    <th scope="col">日付</th>
+                    <th scope="col">曜日</th>
+                    <th scope="col">出勤</th>
+                    <th scope="col">退勤</th>
+                    <th scope="col">作業内容</th>
+                    <th scope="col">状態</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="entry in records"
+                    :key="entry.fullDate"
+                    :class="getStatusClass(entry.status, entry.dayIndex, entry.fullDate)"
+                  >
+                    <td :title="entry.fullDate">{{ entry.date }}</td>
+                    <td>{{ entry.day }}</td>
+                    <td>{{ entry.start || '-' }}</td>
+                    <td>{{ entry.end || '-' }}</td>
+                    <td>{{ entry.task || '-' }}</td>
+                    <td>{{ entry.status }}</td>
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          v-if="entry.status === '承認待'"
+                          class="primary-btn"
+                          @click="approve(entry)"
+                        >
+                          承認
+                        </button>
+                        <button
+                          v-if="entry.status === '承認待'"
+                          class="danger-btn"
+                          @click="reject(entry)"
+                        >
+                          却下
+                        </button>
+                        <button
+                          v-if="entry.status === '承認済'"
+                          class="secondary-btn"
+                          @click="revoke(entry)"
+                        >
+                          取消
+                        </button>
+                        <span v-if="entry.status === '未承認'">-</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="records.length === 0">
+                    <td class="no-data" colspan="7">データがありません</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- /table-scroll -->
+        </div>
+      </div>
+      <!-- /center-area -->
     </div>
+    <!-- /responsive-wrapper -->
   </div>
 </template>
 
@@ -98,6 +116,14 @@ const props = defineProps<{
 }>()
 
 type StatusType = '未承認' | '承認待' | '承認済'
+
+type ApiDayRecord = {
+  start?: string
+  end?: string
+  task?: string
+  status?: StatusType
+}
+type ApiMonthData = Record<string, ApiDayRecord>
 
 interface RecordEntry {
   date: string        // M/D 表示
@@ -151,15 +177,16 @@ const fetchRecords = async () => {
         month: String(month.value).padStart(2, '0'),
       },
     })
-    const data = res.data || {}
+    const data = (res.data ?? {}) as ApiMonthData
     const result: RecordEntry[] = []
 
     const daysInMonth = new Date(year.value, month.value, 0).getDate()
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+
     for (let d = 1; d <= daysInMonth; d++) {
       const local = new Date(year.value, month.value - 1, d) // JSTローカル
       const fullDate = toLocalYMD(year.value, month.value, d)
       const dayIndex = local.getDay() // 0=日,6=土
-      const dayNames = ['日', '月', '火', '水', '木', '金', '土']
       const raw = data[fullDate] || {}
 
       result.push({
@@ -271,7 +298,7 @@ const revoke = async (entry: RecordEntry) => {
 /** CSV出力 */
 const downloadCSV = () => {
   const headers = ['日付', '曜日', '出勤', '退勤', '作業内容', '状態']
-  const rows = records.value.map(r => [
+  const rows = records.value.map((r) => [
     r.date,
     r.day,
     r.start || '-',
@@ -280,10 +307,10 @@ const downloadCSV = () => {
     r.status,
   ])
   const csvContent = [headers, ...rows]
-    .map(row => row.map(val => `"${val}"`).join(','))
+    .map((row) => row.map((val) => `"${val}"`).join(','))
     .join('\r\n')
 
-  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -313,6 +340,26 @@ watch([year, month], fetchRecords)
   text-rendering: optimizeLegibility;
 }
 
+/* ✅ スマホ中央縮小の土台 */
+.responsive-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ✅ 中央基準 */
+.center-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* ✅ ここをスマホ時に縮小（transformは基本使わない） */
+.scaled-area {
+  display: inline-block;
+  transform: none;
+  transform-origin: top center;
+}
+
 /* ===== サマリー（カード＋縦線＋左寄せ） ===== */
 .summary-card {
   min-width: 260px;
@@ -340,10 +387,18 @@ watch([year, month], fetchRecords)
   white-space: nowrap;
 }
 .summary-table tr:last-child th,
-.summary-table tr:last-child td { border-bottom: none; }
+.summary-table tr:last-child td {
+  border-bottom: none;
+}
 .summary-table th:last-child,
-.summary-table td:last-child { border-right: none; }
-.summary-table th { background: #f8fafc; font-weight: 700; width: 140px; }
+.summary-table td:last-child {
+  border-right: none;
+}
+.summary-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  width: 140px;
+}
 
 /* ===== 月切替（統一トーン） ===== */
 .month-selector {
@@ -352,6 +407,9 @@ watch([year, month], fetchRecords)
   gap: 1rem;
   margin: 0 0 0.75rem 0;
   align-items: center;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 .nav-btn {
   min-width: 2.2rem;
@@ -361,8 +419,12 @@ watch([year, month], fetchRecords)
   background: #ffffff;
   cursor: pointer;
 }
-.nav-btn:hover { background: #f1f5f9; }
-.month-selector span { font-weight: 700; }
+.nav-btn:hover {
+  background: #f1f5f9;
+}
+.month-selector span {
+  font-weight: 700;
+}
 
 /* ===== CSVボタン ===== */
 .button-group {
@@ -379,31 +441,42 @@ watch([year, month], fetchRecords)
   font-weight: 700;
   cursor: pointer;
 }
-.csv-button:hover { filter: brightness(1.05); }
+.csv-button:hover {
+  filter: brightness(1.05);
+}
 
-/* ===== テーブル（中央揃え・白背景・縦線・stickyヘッダー） ===== */
-.table-wrapper {
+/* ✅ テーブルを中央寄せ（スクロールを基本禁止） */
+.table-scroll {
   width: 100%;
-  overflow-x: auto; /* 念のため残す（狭小画面対策） */
-  border: 1px solid #cbd5e1; /* 外枠でくっきり */
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== テーブル枠（くっきり） ===== */
+.table-wrapper {
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow:
     0 1px 1px rgba(15, 23, 42, 0.04),
     0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 }
 
+/* ===== 実績テーブル ===== */
 .record-table {
   width: 100%;
-  border-collapse: separate; /* 罫線を明確に */
+  border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.92rem; /* 少し小さめで横幅節約 */
+  font-size: 0.92rem;
   color: #0f172a;
-  min-width: 740px; /* 操作列が見切れないように確保 */
+  min-width: 740px; /* PC想定の最低幅 */
 }
 
 .record-table thead th {
-  position: sticky; /* スクロールでもヘッダー固定 */
+  position: sticky;
   top: 0;
   z-index: 1;
   background: #edf2ff;
@@ -414,41 +487,75 @@ watch([year, month], fetchRecords)
   border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
-.record-table thead th:last-child { border-right: none; }
+.record-table thead th:last-child {
+  border-right: none;
+}
 
 .record-table th,
 .record-table td {
   padding: 8px 10px;
   border-bottom: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
-  text-align: center; /* 中央揃え */
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .record-table th:last-child,
-.record-table td:last-child { border-right: none; }
+.record-table td:last-child {
+  border-right: none;
+}
 
 /* 列幅（コンパクト化） */
-.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 84px; }  /* 日付 */
-.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 60px; }  /* 曜日 */
-.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 80px; }  /* 出勤 */
-.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 80px; }  /* 退勤 */
-.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 140px; } /* 作業内容 */
-.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 84px; }  /* 状態 */
-.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 160px; } /* 操作 */
+.record-table th:nth-child(1),
+.record-table td:nth-child(1) {
+  width: 84px;
+}
+.record-table th:nth-child(2),
+.record-table td:nth-child(2) {
+  width: 60px;
+}
+.record-table th:nth-child(3),
+.record-table td:nth-child(3) {
+  width: 80px;
+}
+.record-table th:nth-child(4),
+.record-table td:nth-child(4) {
+  width: 80px;
+}
+.record-table th:nth-child(5),
+.record-table td:nth-child(5) {
+  width: 140px;
+}
+.record-table th:nth-child(6),
+.record-table td:nth-child(6) {
+  width: 84px;
+}
+.record-table th:nth-child(7),
+.record-table td:nth-child(7) {
+  width: 160px;
+}
 
-/* デフォルトは白背景（ゼブラなし） */
-.record-table tbody tr { background: #ffffff; }
+/* デフォルトは白背景 */
+.record-table tbody tr {
+  background: #ffffff;
+}
 
-/* ===== 状態色（強いセレクタ＆最後に配置） =====
-   承認済：青、承認待：黄、未承認：白、未承認の土日/祝日：赤 */
-.record-table tbody tr.status-unsubmitted         { background-color: #ffffff; }
-.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; } /* 赤 */
-.record-table tbody tr.status-pending             { background-color: #fff1a6; } /* 黄 */
-.record-table tbody tr.status-approved            { background-color: #dbeafe; } /* 青 */
+/* 状態色 */
+.record-table tbody tr.status-unsubmitted {
+  background-color: #ffffff;
+}
+.record-table tbody tr.status-unsubmitted-weekend {
+  background-color: #ffe4e6;
+}
+.record-table tbody tr.status-pending {
+  background-color: #fff1a6;
+}
+.record-table tbody tr.status-approved {
+  background-color: #dbeafe;
+}
 
-/* ===== 操作ボタン ===== */
+/* 操作ボタン */
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -457,7 +564,7 @@ watch([year, month], fetchRecords)
 }
 .primary-btn {
   padding: 0.35rem 0.8rem;
-  background-color: #2563eb;  /* 青（承認） */
+  background-color: #2563eb;
   color: #ffffff;
   border: 1px solid #2563eb;
   border-radius: 8px;
@@ -465,11 +572,13 @@ watch([year, month], fetchRecords)
   font-weight: 700;
   font-size: 0.9rem;
 }
-.primary-btn:hover { filter: brightness(1.05); }
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
 
 .danger-btn {
   padding: 0.35rem 0.8rem;
-  background-color: #ef4444;  /* 赤（却下） */
+  background-color: #ef4444;
   color: #ffffff;
   border: 1px solid #ef4444;
   border-radius: 8px;
@@ -477,11 +586,13 @@ watch([year, month], fetchRecords)
   font-weight: 700;
   font-size: 0.9rem;
 }
-.danger-btn:hover { filter: brightness(1.05); }
+.danger-btn:hover {
+  filter: brightness(1.05);
+}
 
 .secondary-btn {
   padding: 0.35rem 0.8rem;
-  background-color: #ffffff;   /* 取消はニュートラル */
+  background-color: #ffffff;
   color: #0f172a;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -489,7 +600,9 @@ watch([year, month], fetchRecords)
   font-weight: 700;
   font-size: 0.9rem;
 }
-.secondary-btn:hover { background: #f1f5f9; }
+.secondary-btn:hover {
+  background: #f1f5f9;
+}
 
 /* “データなし”表示 */
 .no-data {
@@ -499,10 +612,52 @@ watch([year, month], fetchRecords)
   font-weight: 600;
 }
 
-/* スマホ倍率調整 */
+/* ===== スマホ最適化（中央縮小＆横スクロール封殺） ===== */
 @media (max-width: 600px) {
-  .confirm-report-tab { transform: scale(0.9); transform-origin: top left; }
-  .summary-card,
-  .table-wrapper { transform: scale(0.95); transform-origin: top left; }
+  .confirm-report-tab {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0.75rem;
+    --m-scale: 0.62; /* ← 端末で微調整するならここ */
+  }
+
+  .responsive-wrapper,
+  .center-area {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* zoomが効く端末はこれが一番安定（中央＆はみ出し防止） */
+  @supports (zoom: 1) {
+    .scaled-area {
+      zoom: var(--m-scale);
+    }
+  }
+
+  /* zoom非対応（Safari等）の保険 */
+  @supports not (zoom: 1) {
+    .scaled-area {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%) scale(var(--m-scale));
+      transform-origin: top center;
+    }
+  }
+
+  /* サマリーが広すぎる場合の保険 */
+  .summary-card {
+    min-width: 0;
+  }
+
+  /* テーブル横スクロールは出さない */
+  .table-scroll {
+    overflow-x: hidden;
+  }
+
+  /* CSVボタンが右に寄りすぎるのを防ぐ（中央寄せ） */
+  .button-group {
+    justify-content: center;
+  }
 }
 </style>
