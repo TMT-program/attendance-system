@@ -323,7 +323,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
 }
 </script>
 
-<style>
+<style scoped>
 /* レイアウト */
 .report-container {
   display: flex;
@@ -515,15 +515,10 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
-  .record-table.table-fit {
-    transform: scale(0.6);          /* ここを調整 */
-    transform-origin: top left;
-    width: calc(100% / 0.6);        /* scale と同じ値で割る */
-  }
-
-  /* wrapper は縮小しない、スクロール担当 */
-  .table-wrapper {
-    overflow-x: auto;
+  :deep(.record-table.table-fit) {
+    transform: scale(0.6) !important;
+    width: calc(100% / 0.6) !important;
+    display: inline-block !important;
   }
 }
 
