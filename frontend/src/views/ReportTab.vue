@@ -515,11 +515,33 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
+  /* 全体を縦並びにしてサマリーを上へ */
+  .report-container {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .summary-card {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  /* テーブルは縮小（枠もテーブルに合わせる） */
   :deep(.record-table.table-fit) {
-    transform: scale(0.6) !important;
-    width: calc(100% / 0.6) !important;
-    display: inline-block !important;
+    display: inline-block;
+    transform: scale(0.6);
+    transform-origin: top left;
+    width: auto; /* ✅ calcはやめる */
+  }
+
+  .table-wrapper {
+    width: fit-content; /* ✅ 枠をテーブル幅に追従 */
+    max-width: 100%;
+    overflow-x: auto;
   }
 }
+
+
 
 </style>
