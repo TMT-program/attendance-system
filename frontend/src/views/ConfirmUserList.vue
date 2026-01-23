@@ -3,42 +3,48 @@
     <h2 class="section-title">ユーザー一覧</h2>
 
     <div class="responsive-wrapper">
-      <!-- くっきり表示用のカード枠 -->
-      <div class="table-wrapper">
-        <table class="user-table" role="table" aria-label="勤務実績確認用ユーザー一覧">
-          <thead>
-            <tr>
-              <th scope="col">ユーザー名</th>
-              <th scope="col">メールアドレス</th>
-              <th scope="col" class="col-action">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in paginatedUsers" :key="user.uid">
-              <td :title="user.displayName || '-'">{{ user.displayName || '-' }}</td>
-              <td :title="user.email">{{ user.email }}</td>
-              <td class="col-action">
-                <button
-                  class="primary-btn"
-                  @click="selectUser(user)"
-                  aria-label="このユーザーの勤務実績を確認"
-                >
-                  確認
-                </button>
-              </td>
-            </tr>
-            <tr v-if="paginatedUsers.length === 0">
-              <td colspan="3" class="no-data">該当するユーザーがいません</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- ✅ 中央基準 + 縮小コンテナ（テーブル＆ページネーションをまとめて縮小） -->
+      <div class="center-area">
+        <div class="scaled-area">
+          <!-- くっきり表示用のカード枠 -->
+          <div class="table-wrapper">
+            <table class="user-table" role="table" aria-label="勤務実績確認用ユーザー一覧">
+              <thead>
+                <tr>
+                  <th scope="col">ユーザー名</th>
+                  <th scope="col">メールアドレス</th>
+                  <th scope="col" class="col-action">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="user in paginatedUsers" :key="user.uid">
+                  <td :title="user.displayName || '-'">{{ user.displayName || '-' }}</td>
+                  <td :title="user.email">{{ user.email }}</td>
+                  <td class="col-action">
+                    <button
+                      class="primary-btn"
+                      @click="selectUser(user)"
+                      aria-label="このユーザーの勤務実績を確認"
+                    >
+                      確認
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="paginatedUsers.length === 0">
+                  <td colspan="3" class="no-data">該当するユーザーがいません</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-      <div class="pagination" role="navigation" aria-label="ページネーション">
-        <button @click="prevPage" :disabled="currentPage === 1" aria-label="前のページ">←</button>
-        <span aria-live="polite">{{ currentPage }} / {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="currentPage === totalPages" aria-label="次のページ">→</button>
+          <div class="pagination" role="navigation" aria-label="ページネーション">
+            <button @click="prevPage" :disabled="currentPage === 1" aria-label="前のページ">←</button>
+            <span aria-live="polite">{{ currentPage }} / {{ totalPages }}</span>
+            <button @click="nextPage" :disabled="currentPage === totalPages" aria-label="次のページ">→</button>
+          </div>
+        </div>
       </div>
+      <!-- /center-area -->
     </div>
   </div>
 </template>
@@ -64,16 +70,14 @@ const usersPerPage = 10
 
 const fetchUsers = async () => {
   const snapshot = await getDocs(collection(db, 'users'))
-  users.value = snapshot.docs.map(doc => ({
+  users.value = snapshot.docs.map((doc) => ({
     uid: doc.id,
     displayName: (doc.data() as any).displayName || '',
     email: (doc.data() as any).email || '',
   }))
 }
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(users.value.length / usersPerPage))
-)
+const totalPages = computed(() => Math.max(1, Math.ceil(users.value.length / usersPerPage)))
 
 const paginatedUsers = computed(() => {
   const start = (currentPage.value - 1) * usersPerPage
@@ -114,19 +118,35 @@ onMounted(fetchUsers)
   width: fit-content;
 }
 
+/* ✅ wrapperは中央縮小の土台にする */
 .responsive-wrapper {
-  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ✅ 中央基準 */
+.center-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* ✅ ここをスマホ時に縮小する（transformは基本使わない） */
+.scaled-area {
+  display: inline-block;
+  transform: none;
+  transform-origin: top center;
 }
 
 /* カード枠で“くっきり”見せる */
 .table-wrapper {
-  border: 1px solid #94a3b8;          /* 外枠を少し濃いめに */
+  border: 1px solid #94a3b8; /* 外枠を少し濃いめに */
   border-radius: 12px;
   background: #ffffff;
   box-shadow:
     0 6px 16px rgba(15, 23, 42, 0.12),
     0 1px 0 rgba(15, 23, 42, 0.06);
-  overflow: hidden;                    /* 角丸を効かせる */
+  overflow: hidden; /* 角丸を効かせる */
 }
 
 /* くっきり系テーブル（縦線・ヘッダー強調） */
@@ -140,12 +160,12 @@ onMounted(fetchUsers)
 }
 
 .user-table thead th {
-  background-color: #eaf1ff;          /* ヘッダーのコントラストUP */
+  background-color: #eaf1ff; /* ヘッダーのコントラストUP */
   font-weight: 700;
   padding: 12px 16px;
-  text-align: left;                    /* すべて左寄せ */
-  border-bottom: 2px solid #94a3b8;   /* 下線太め */
-  border-right: 1px solid #e2e8f0;    /* 縦線 */
+  text-align: left; /* すべて左寄せ */
+  border-bottom: 2px solid #94a3b8; /* 下線太め */
+  border-right: 1px solid #e2e8f0; /* 縦線 */
   white-space: nowrap;
 }
 .user-table thead th:last-child {
@@ -155,11 +175,11 @@ onMounted(fetchUsers)
 /* セルも左寄せに統一 */
 .user-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;   /* セルの区切り */
-  border-right: 1px solid #e2e8f0;    /* 縦線 */
+  border-bottom: 1px solid #e2e8f0; /* セルの区切り */
+  border-right: 1px solid #e2e8f0; /* 縦線 */
   white-space: nowrap;
   vertical-align: middle;
-  text-align: left;                   /* ← 左寄せ */
+  text-align: left; /* ← 左寄せ */
 }
 .user-table td:last-child {
   border-right: none;
@@ -224,21 +244,57 @@ onMounted(fetchUsers)
   filter: brightness(1.05);
 }
 
-/* スマホ向け縮小表示（他ページと統一） */
+/* ===== スマホ最適化（中央縮小＆横スクロール封殺） ===== */
 @media (max-width: 600px) {
-  .responsive-wrapper {
-    transform: scale(0.78);
-    transform-origin: top left;
+  /* 横スクロール封殺（最重要） */
+  .confirm-user-list {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0.75rem;
+    --m-scale: 0.78; /* ← 端末で微調整するならここ */
   }
+
+  .responsive-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .center-area {
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* zoomが効く端末はこれが一番安定（中央＆はみ出し防止） */
+  @supports (zoom: 1) {
+    .scaled-area {
+      zoom: var(--m-scale);
+    }
+  }
+
+  /* zoom非対応（Safari等）の保険 */
+  @supports not (zoom: 1) {
+    .scaled-area {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%) scale(var(--m-scale));
+      transform-origin: top center;
+    }
+  }
+
   .section-title {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
   }
+
   .user-table thead th,
   .user-table td {
     padding: 10px 12px;
     font-size: 0.9rem;
   }
+
   .pagination {
     margin: 0.4rem 0;
   }

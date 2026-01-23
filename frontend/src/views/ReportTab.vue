@@ -624,7 +624,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
   /* ▼ スマホ縮小率（端末で微調整OK） */
   .report-container {
-    --m-scale: 0.58;
+    --m-scale: 0.50;
   }
 
   /* まずは “スクロール発生源” を止める */
