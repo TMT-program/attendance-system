@@ -4,51 +4,55 @@
       <Megaphone class="icon" /> 周知事項
     </h1>
 
-    <!-- アップロードセクション（管理者のみ表示） -->
-    <div v-if="isAdmin" class="uploader-card">
-      <div class="uploader-header">
-        <h2>PDFアップロード</h2>
-        <button class="primary-btn" @click="toggleUploader">
-          {{ showUploader ? 'アップロード領域を閉じる' : 'アップロード' }}
-        </button>
-      </div>
-
-      <transition name="fade">
-        <div
-          v-if="showUploader"
-          class="upload-area"
-          @dragover.prevent
-          @drop.prevent="handleDrop"
-        >
-          <p class="upload-instruction">ここにPDFファイルをドラッグ&ドロップしてください</p>
-
-          <ul v-if="droppedFiles.length > 0" class="file-list">
-            <li v-for="file in droppedFiles" :key="file.name" class="file-item">
-              {{ file.name }}
-            </li>
-          </ul>
-
-          <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-
-          <div class="upload-actions">
-            <button class="primary-btn" @click="uploadFiles" :disabled="droppedFiles.length === 0">
-              アップロード実行
-            </button>
-          </div>
-          <p class="demo-note" v-if="IS_DEMO">
-            ※ デモ用システムのため実際のアップロードは行われません
-          </p>
-        </div>
-      </transition>
+    <!-- ✅ ローディング中は「画面全体（アップロード含む）」をスピナー表示に差し替え -->
+    <div v-if="isLoading" class="loading-wrapper">
+      <LoadingSpinner />
     </div>
 
-    <!-- 読み込み中表示 -->
-    <LoadingSpinner v-if="isLoading" />
-
-    <!-- 一覧 -->
+    <!-- ✅ ローディング完了後にアップロードボタン/一覧など全部表示 -->
     <div v-else>
+      <!-- アップロードセクション（管理者のみ表示） -->
+      <div v-if="isAdmin" class="uploader-card">
+        <div class="uploader-header">
+          <h2>PDFアップロード</h2>
+          <button class="primary-btn" @click="toggleUploader">
+            {{ showUploader ? 'アップロード領域を閉じる' : 'アップロード' }}
+          </button>
+        </div>
+
+        <transition name="fade">
+          <div
+            v-if="showUploader"
+            class="upload-area"
+            @dragover.prevent
+            @drop.prevent="handleDrop"
+          >
+            <p class="upload-instruction">ここにPDFファイルをドラッグ&ドロップしてください</p>
+
+            <ul v-if="droppedFiles.length > 0" class="file-list">
+              <li v-for="file in droppedFiles" :key="file.name" class="file-item">
+                {{ file.name }}
+              </li>
+            </ul>
+
+            <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+
+            <div class="upload-actions">
+              <button class="primary-btn" @click="uploadFiles" :disabled="droppedFiles.length === 0">
+                アップロード実行
+              </button>
+            </div>
+            <p class="demo-note" v-if="IS_DEMO">
+              ※ デモ用システムのため実際のアップロードは行われません
+            </p>
+          </div>
+        </transition>
+      </div>
+
+      <!-- 一覧 -->
       <div v-if="announcements.length > 0" class="table-wrapper">
-        <table class="announcement-table" role="table" aria-label="周知事項PDF一覧">
+        <!-- ✅ PC/タブレット：テーブル表示 -->
+        <table class="announcement-table pc-only" role="table" aria-label="周知事項PDF一覧">
           <thead>
             <tr>
               <th scope="col">ファイル名</th>
@@ -66,6 +70,25 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- ✅ スマホ：カード表示（画面内に収まる） -->
+        <div class="mobile-only">
+          <div v-for="file in announcements" :key="file.name" class="pdf-card">
+            <div class="card-row">
+              <span class="label">ファイル</span>
+              <span class="value mono scrollable" :title="file.name">
+                <a :href="file.url" target="_blank" rel="noopener">{{ file.name }}</a>
+              </span>
+            </div>
+
+            <div v-if="isAdmin" class="card-row">
+              <span class="label">操作</span>
+              <span class="value">
+                <button class="danger-btn" @click="deleteFile(file.name)">削除</button>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-else class="no-data-card">
@@ -218,6 +241,13 @@ onMounted(() => {
   stroke: #0f172a;
 }
 
+/* ✅ ローディング表示 */
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
 /* ===== アップローダー（カード風・統一トーン） ===== */
 .uploader-card {
   border: 1px solid #cbd5e1;
@@ -233,11 +263,13 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
 }
 .uploader-header h2 {
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0;
+  white-space: nowrap;
 }
 
 .upload-area {
@@ -284,9 +316,15 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
+  white-space: nowrap;
 }
-.primary-btn:hover { filter: brightness(1.05); }
-.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .danger-btn {
   background-color: #dc2626;
@@ -297,13 +335,15 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 700;
 }
-.danger-btn:hover { background-color: #b91c1c; }
+.danger-btn:hover {
+  background-color: #b91c1c;
+}
 
 /* ===== テーブル（ユーザー管理と同トーン・くっきり） ===== */
 .table-wrapper {
   width: 100%;
   overflow: auto;
-  border: 1px solid #cbd5e1; /* 外枠でくっきり */
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow:
@@ -313,7 +353,7 @@ onMounted(() => {
 
 .announcement-table {
   width: 100%;
-  border-collapse: separate; /* separateで罫線を強調 */
+  border-collapse: separate;
   border-spacing: 0;
   font-size: 0.95rem;
   color: #0f172a;
@@ -321,15 +361,15 @@ onMounted(() => {
 }
 
 .announcement-table thead th {
-  position: sticky; /* スクロールしてもヘッダー固定 */
+  position: sticky;
   top: 0;
   z-index: 1;
-  background: #edf2ff; /* ほんのり濃い見出し */
+  background: #edf2ff;
   text-align: left;
   font-weight: 700;
   padding: 12px 14px;
-  border-bottom: 2px solid #94a3b8; /* 下線を太めに */
-  border-right: 1px solid #e2e8f0;   /* 縦線 */
+  border-bottom: 2px solid #94a3b8;
+  border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 .announcement-table thead th:last-child {
@@ -339,19 +379,18 @@ onMounted(() => {
 .announcement-table th,
 .announcement-table td {
   padding: 12px 14px;
-  border-bottom: 1px solid #e2e8f0;  /* セル下線を明確に */
-  border-right: 1px solid #e2e8f0;   /* 縦線 */
-  text-align: left;                  /* 左寄せ */
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .announcement-table th:last-child,
 .announcement-table td:last-child {
-  border-right: none; /* 最後の列は縦線なし */
+  border-right: none;
 }
 
-/* ゼブラ＋ホバー */
 .announcement-table tbody tr:nth-child(odd) {
   background: #f8fafc;
 }
@@ -359,13 +398,12 @@ onMounted(() => {
   background: #e8f0ff;
 }
 
-/* 列幅の目安（ファイル名は広め） */
 .announcement-table td:first-child {
   min-width: 340px;
 }
 .col-action {
   min-width: 120px;
-  text-align: left; /* ボタン列も左寄せで統一 */
+  text-align: left;
 }
 
 /* ファイルリンク */
@@ -393,21 +431,128 @@ onMounted(() => {
 }
 
 /* フェード（アップローダー開閉用） */
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
 
-/* ===== スマホ最適化（あなたの方針を踏襲） ===== */
+/* ✅ 表示切り替え（ユーザー一覧と同じ方針） */
+.pc-only {
+  display: table;
+}
+.mobile-only {
+  display: none;
+}
+
+/* ✅ スマホ用カードUI（テーブルを無理に縮めず、画面内に収める） */
+.pdf-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  min-width: 0; /* ✅ はみ出し防止 */
+}
+.card-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 0.95rem;
+  color: #0f172a;
+  text-align: left;
+  justify-self: start;
+
+  min-width: 0; /* ✅ grid内で縮める */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.value a {
+  color: #2563eb;
+  text-decoration: none;
+}
+.value a:hover {
+  text-decoration: underline;
+}
+
+/* ===== スマホ最適化（scale方式は廃止） ===== */
 @media (max-width: 600px) {
-  .table-wrapper {
-    transform: scale(0.7);
-    transform-origin: top left;
+  .announcement-page {
+    padding: 1rem 0.75rem;
   }
+
   .page-title {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
+    margin-bottom: 0.75rem;
   }
-  .uploader-card {
-    transform: scale(0.95);
-    transform-origin: top left;
+
+  .icon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .uploader-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .primary-btn {
+    width: 100%;
+  }
+
+  .upload-actions .primary-btn {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* ✅ スマホではテーブルを隠してカード表示へ */
+  .pc-only {
+    display: none;
+  }
+  .mobile-only {
+    display: block;
+  }
+
+  /* ✅ メール/ファイル名はカード内で横スクロールで全文確認 */
+  .value.scrollable {
+    overflow-x: auto;
+    overflow-y: hidden;
+    text-overflow: clip;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .value.scrollable::-webkit-scrollbar {
+    height: 6px;
   }
 }
 </style>

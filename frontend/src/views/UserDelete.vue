@@ -8,10 +8,10 @@
       <div class="table-wrapper">
         <h2 class="section-title">🗑️ ユーザー削除</h2>
 
-        <table class="user-table" role="table" aria-label="ユーザー削除テーブル">
+        <!-- ✅ PC/タブレット：テーブル表示 -->
+        <table class="user-table pc-only" role="table" aria-label="ユーザー削除テーブル">
           <thead>
             <tr>
-              <!-- ✅ 追加：チェックボックス列 -->
               <th scope="col" class="col-check" aria-label="選択">選択</th>
               <th scope="col">名前</th>
               <th scope="col">メールアドレス</th>
@@ -25,7 +25,6 @@
               :key="user.uid"
               :class="{ selected: isSelected(user) }"
             >
-              <!-- ✅ 列クリック選択 → チェックボックス選択に変更 -->
               <td class="col-check">
                 <input
                   type="checkbox"
@@ -48,6 +47,45 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- ✅ スマホ：カード表示 -->
+        <div class="mobile-only">
+          <div v-if="paginatedUsers.length === 0" class="no-data">該当するユーザーがいません</div>
+
+          <div v-for="user in paginatedUsers" :key="user.uid" class="user-card">
+            <div class="card-row">
+              <span class="label">選択</span>
+              <span class="value">
+                <input
+                  type="checkbox"
+                  class="row-checkbox"
+                  :checked="isSelected(user)"
+                  @change="toggleSelectUser(user, $event)"
+                  :aria-label="`削除対象として選択: ${user.displayName || user.email}`"
+                />
+              </span>
+            </div>
+
+            <div class="card-row">
+              <span class="label">名前</span>
+              <span class="value" :title="user.displayName || '(名前なし)'">
+                {{ user.displayName || '(名前なし)' }}
+              </span>
+            </div>
+
+            <div class="card-row">
+              <span class="label">メール</span>
+              <span class="value mono scrollable" :title="user.email">
+                {{ user.email }}
+              </span>
+            </div>
+
+            <div class="card-row">
+              <span class="label">管理者</span>
+              <span class="value">{{ user.isAdmin ? 'あり' : 'なし' }}</span>
+            </div>
+          </div>
+        </div>
 
         <div class="pagination">
           <button @click="prevPage" :disabled="page === 1">←</button>
@@ -133,7 +171,7 @@ const PROTECTED_UIDS = new Set<string>([
 const isSelected = (user: User) => selectedUsers.value.some(u => u.uid === user.uid)
 
 /**
- * ✅ 列クリック選択 → チェックボックスでトグル選択に変更
+ * ✅ チェックボックスでトグル選択
  * ほかのロジックは変更しない（selectedUsers の配列運用もそのまま）
  */
 const toggleSelectUser = (user: User, e: Event) => {
@@ -242,14 +280,14 @@ const deleteUsers = async () => {
 .user-table td {
   padding: 12px 14px;
   border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0; /* 列の縦線 */
-  text-align: left; /* 左寄せ */
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
   white-space: nowrap;
 }
 
 .user-table th:last-child,
 .user-table td:last-child {
-  border-right: none; /* 最後の列は縦線なし */
+  border-right: none;
 }
 
 .user-table thead th {
@@ -315,7 +353,7 @@ const deleteUsers = async () => {
 
 /* テーブルとボタンの間隔を確保 */
 .confirm-box {
-  margin-top: 1rem; /* ← これでくっつかない */
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -378,17 +416,102 @@ const deleteUsers = async () => {
   justify-content: center;
 }
 
-/* スマホ調整 */
+/* ✅ 表示切り替え */
+.pc-only {
+  display: table;
+}
+.mobile-only {
+  display: none;
+}
+
+/* ✅ スマホ用カードUI */
+.user-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  min-width: 0; /* ✅ はみ出し防止（重要） */
+}
+
+.card-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 0.95rem;
+  color: #0f172a;
+  text-align: left;
+  justify-self: start;
+  min-width: 0; /* ✅ grid内で縮められるように */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* ✅ スマホ時：メールだけ横スクロール */
 @media (max-width: 600px) {
-  .user-table {
-    transform: scale(0.7);
-    transform-origin: top left;
+  .pc-only {
+    display: none;
   }
+  .mobile-only {
+    display: block;
+  }
+
+  .user-section {
+    padding: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+  }
+
   .pagination {
-    margin: 0.2rem 0;
+    margin: 0.4rem 0;
   }
+
+  .pagination span {
+    font-size: 1rem;
+  }
+
   .delete-button {
     font-size: 0.95rem;
+  }
+
+  .value.scrollable {
+    overflow-x: auto;
+    overflow-y: hidden;
+    text-overflow: clip;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .value.scrollable::-webkit-scrollbar {
+    height: 6px;
   }
 }
 </style>
