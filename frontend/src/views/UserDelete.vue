@@ -11,26 +11,40 @@
         <table class="user-table" role="table" aria-label="ユーザー削除テーブル">
           <thead>
             <tr>
+              <!-- ✅ 追加：チェックボックス列 -->
+              <th scope="col" class="col-check" aria-label="選択">選択</th>
               <th scope="col">名前</th>
               <th scope="col">メールアドレス</th>
               <th scope="col" class="col-admin">管理者権限</th>
             </tr>
           </thead>
+
           <tbody>
             <tr
               v-for="user in paginatedUsers"
               :key="user.uid"
               :class="{ selected: isSelected(user) }"
-              @click="selectUser(user, $event)"
             >
+              <!-- ✅ 列クリック選択 → チェックボックス選択に変更 -->
+              <td class="col-check">
+                <input
+                  type="checkbox"
+                  class="row-checkbox"
+                  :checked="isSelected(user)"
+                  @change="toggleSelectUser(user, $event)"
+                  :aria-label="`削除対象として選択: ${user.displayName || user.email}`"
+                />
+              </td>
+
               <td :title="user.displayName || '(名前なし)'">
                 {{ user.displayName || '(名前なし)' }}
               </td>
               <td :title="user.email">{{ user.email }}</td>
               <td class="col-admin">{{ user.isAdmin ? 'あり' : 'なし' }}</td>
             </tr>
+
             <tr v-if="paginatedUsers.length === 0">
-              <td colspan="3" class="no-data">該当するユーザーがいません</td>
+              <td colspan="4" class="no-data">該当するユーザーがいません</td>
             </tr>
           </tbody>
         </table>
@@ -76,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
 import type { User } from '../components/types'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
@@ -87,7 +101,7 @@ const DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 const props = defineProps<{ users: User[] }>()
 const emit = defineEmits<{ (e: 'refresh-users'): void }>()
 
-/** 複数選択（Ctrl+クリックでトグル、通常クリックは単一選択） */
+/** 複数選択（チェックボックスでトグル） */
 const selectedUsers = ref<User[]>([])
 const deleteMessage = ref('')
 const showConfirm = ref(false)
@@ -102,35 +116,35 @@ const paginatedUsers = computed(() => {
   return props.users.slice(start, start + pageSize)
 })
 
-const prevPage = () => { if (page.value > 1) page.value-- }
-const nextPage = () => { if (page.value < totalPages.value) page.value++ }
+const prevPage = () => {
+  if (page.value > 1) page.value--
+}
+const nextPage = () => {
+  if (page.value < totalPages.value) page.value++
+}
 
 /** デモ用 削除禁止UID */
 const PROTECTED_UIDS = new Set<string>([
   '5fvxqbgf4nPN1k1gR1vp2seFzOr1', // 管理者
-  'Mc7myNRJ0HV5jmBh3yRgCwGtkHk2'  // 一般
+  'Mc7myNRJ0HV5jmBh3yRgCwGtkHk2' // 一般
 ])
 
 /** 行が選択されているか */
 const isSelected = (user: User) => selectedUsers.value.some(u => u.uid === user.uid)
 
-/** Ctrl クリックで複数選択、通常クリックで単一選択 */
-const selectUser = (user: User, e: MouseEvent) => {
-  const ctrl = e.ctrlKey || e.metaKey // mac対応でmetaKeyも許容
-  if (ctrl) {
-    if (isSelected(user)) {
-      selectedUsers.value = selectedUsers.value.filter(u => u.uid !== user.uid)
-    } else {
+/**
+ * ✅ 列クリック選択 → チェックボックスでトグル選択に変更
+ * ほかのロジックは変更しない（selectedUsers の配列運用もそのまま）
+ */
+const toggleSelectUser = (user: User, e: Event) => {
+  const checked = (e.target as HTMLInputElement).checked
+
+  if (checked) {
+    if (!isSelected(user)) {
       selectedUsers.value = [...selectedUsers.value, user]
     }
   } else {
-    // 単一選択
-    if (isSelected(user) && selectedUsers.value.length === 1) {
-      // 同じ行をもう一度通常クリックしたら解除してもOKにする
-      selectedUsers.value = []
-    } else {
-      selectedUsers.value = [user]
-    }
+    selectedUsers.value = selectedUsers.value.filter(u => u.uid !== user.uid)
   }
 }
 
@@ -175,8 +189,7 @@ const deleteUsers = async () => {
 
     const success = results.filter(r => r.status === 'fulfilled').length
     const fail = results.length - success
-    deleteMessage.value =
-      `削除完了：${success}件 成功${fail > 0 ? `／${fail}件 失敗` : ''}`
+    deleteMessage.value = `削除完了：${success}件 成功${fail > 0 ? `／${fail}件 失敗` : ''}`
 
     // 成功分を選択から外す・全体をクリア
     selectedUsers.value = []
@@ -214,9 +227,7 @@ const deleteUsers = async () => {
   border-radius: 10px;
   background: #fff;
   overflow-x: auto;
-  box-shadow:
-    0 1px 1px rgba(15, 23, 42, 0.04),
-    0 4px 12px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 /* テーブル本体（縦線・左寄せ・ゼブラ・ホバー・選択強調） */
@@ -255,12 +266,31 @@ const deleteUsers = async () => {
 
 .user-table tbody tr:hover {
   background: #e8f0ff;
-  cursor: pointer;
 }
 
+/* ✅ 選択状態（チェックボックスと連動） */
 .user-table tbody tr.selected {
   background: #fdecea;
   box-shadow: inset 4px 0 0 #dc2626;
+}
+
+/* ✅ チェックボックス列 */
+.col-check {
+  width: 64px;
+  min-width: 64px;
+  text-align: center;
+}
+
+.user-table th.col-check,
+.user-table td.col-check {
+  text-align: center;
+}
+
+.row-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #dc2626;
 }
 
 /* ページネーション */
@@ -321,7 +351,7 @@ const deleteUsers = async () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,7 +363,7 @@ const deleteUsers = async () => {
   border-radius: 12px;
   max-width: 90%;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 .modal .target-list {
   display: inline-block;
