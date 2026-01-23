@@ -622,16 +622,34 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
-  /* 全体を縦並び（サマリーは左のまま） */
   .report-container {
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  /* ✅ 月切替とテーブルが「同じ基準」で縮むのでズレない */
+  /* ★ transform縮小はやめる（ズレの元） */
   .scaled-area {
-    transform: scale(0.6);
-    transform-origin: top center;
+    transform: none !important;
+  }
+
+  /* ★ 月切替を画面中央に */
+  .month-selector {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ★ テーブル枠を必ず画面中央に寄せる */
+  .table-scroll {
+    width: 100%;
+    overflow-x: hidden;          /* 見切れ対策：まず横スクロールを止める */
+    display: flex;               /* 中央寄せ確実化 */
+    justify-content: center;
+  }
+
+  /* ★ 枠ごと縮小（ここが肝） */
+  .table-frame {
+    zoom: 0.6;                   /* ← ここを端末に合わせて調整 */
   }
 }
+
 </style>
