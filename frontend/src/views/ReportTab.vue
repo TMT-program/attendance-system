@@ -462,10 +462,8 @@ const cancelSubmission = async (entry: RecordEntry) => {
 .table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;   /* ★ auto → hidden */
+  overflow-x: auto;
   padding: 0;
-  display: flex;        /* ★中央寄せ安定化 */
-  justify-content: center;
 }
 
 /* ===== 枠担当（ここが外枠） ===== */
@@ -629,44 +627,29 @@ const cancelSubmission = async (entry: RecordEntry) => {
     gap: 0.75rem;
   }
 
-  /* ✅ 中央寄せの基準を “画面” に固定 */
-  .center-area {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  /* ✅ ここでまとめて縮小（ズレない） */
+  /* ★ transform縮小はやめる（ズレの元） */
   .scaled-area {
-    transform: scale(0.6);
-    transform-origin: top center;
-
-    /* ★縮小後に画面幅へピッタリ合わせる（はみ出し防止） */
-    width: calc(100% / 0.6);
+    transform: none !important;
   }
 
-  /* 月切替は scaled-area 内で中央（100%幅にする） */
+  /* ★ 月切替を画面中央に */
   .month-selector {
     width: 100%;
     justify-content: center;
   }
 
-  /* 横スクロールを完全に殺す */
+  /* ★ テーブル枠を必ず画面中央に寄せる */
   .table-scroll {
-    overflow-x: hidden;
-  }
-
-  /* ★レイアウト上のはみ出し原因（min-width）を解除 */
-  .record-table {
-    min-width: 0;          /* ←これが効く */
     width: 100%;
+    overflow-x: hidden;          /* 見切れ対策：まず横スクロールを止める */
+    display: flex;               /* 中央寄せ確実化 */
+    justify-content: center;
   }
 
-  /* 枠は中央に維持 */
+  /* ★ 枠ごと縮小（ここが肝） */
   .table-frame {
-    display: block;
+    zoom: 0.6;                   /* ← ここを端末に合わせて調整 */
   }
 }
-
 
 </style>
