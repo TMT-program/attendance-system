@@ -8,11 +8,14 @@
     <div v-if="!uid" class="loading">ユーザー情報を取得中...</div>
 
     <div v-else>
-      <div class="tab-menu">
+      <div class="tab-menu" role="tablist" aria-label="勤務報告タブ">
         <button
           v-for="tab in tabs"
           :key="tab"
+          type="button"
           :class="['tab-button', { active: currentTab === tab }]"
+          role="tab"
+          :aria-selected="currentTab === tab"
           @click="() => { currentTab = tab; selectedUser = null }"
         >
           {{ tab }}
@@ -90,6 +93,15 @@ interface RecordEntry {
   end?: string
 }
 
+type AttendanceRecord = {
+  start?: string
+  end?: string
+  task?: string
+  status?: string
+}
+
+type AttendanceResponse = Record<string, AttendanceRecord>
+
 const records = ref<RecordEntry[]>([])
 
 const toJSTTimeString = (input: any): string => {
@@ -128,14 +140,15 @@ const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
 
   try {
-    const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
+    const res = await axios.get<AttendanceResponse>(`${API_BASE_URL}/api/attendance`, {
       params: {
         uid: uid.value,
         year: year.value,
         month: String(month.value).padStart(2, '0'),
       },
     })
-    const data = res.data || {}
+
+    const data = res.data ?? {}
 
     const result: RecordEntry[] = []
     for (let d = 1; d <= daysInMonth; d++) {
@@ -190,7 +203,9 @@ const nextMonth = () => {
 .attendance-report {
   padding: 2rem 1rem;
   max-width: 960px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   color: #0f172a;
@@ -217,13 +232,19 @@ const nextMonth = () => {
   white-space: nowrap;
 }
 
-/* タブUI（トーン統一） */
+.loading {
+  text-align: center;
+  color: #475569;
+  font-weight: 700;
+  padding: 1rem 0;
+}
+
+/* タブUI（PC） */
 .tab-menu {
   display: flex;
   justify-content: center;
   border-bottom: 1px solid #cbd5e1;
   margin-bottom: 1rem;
-  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -235,8 +256,10 @@ const nextMonth = () => {
   font-weight: 700;
   cursor: pointer;
   color: #0f172a;
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
+  white-space: nowrap;
 }
+
 .tab-button.active {
   background: #edf2ff;
   border-bottom-color: #edf2ff;
@@ -249,23 +272,37 @@ const nextMonth = () => {
 /* スマホ */
 @media (max-width: 600px) {
   .attendance-report {
-    transform: scale(0.9);
-    transform-origin: top left;
+    padding: 1rem 0.5rem; /* transformで縮めない */
   }
+
   .icon {
     width: 22px;
     height: 22px;
   }
+
   .title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+    white-space: normal;
+    text-align: center;
   }
-  .tab-button {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-  }
+
+  /* ✅ ここが肝：タブを画面幅に収める */
   .tab-menu {
-    gap: 0.3rem;
+    justify-content: space-between;
+    gap: 0.35rem;
     margin-bottom: 0.6rem;
+  }
+
+  .tab-button {
+    flex: 1;          /* 画面幅に合わせて縮む */
+    min-width: 0;     /* 長い文字があっても縮む */
+    padding: 0.5rem 0.4rem;
+    font-size: 0.85rem;
+    text-align: center;
+
+    /* 収まらない場合は省略表示（PCはそのまま） */
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 </style>
