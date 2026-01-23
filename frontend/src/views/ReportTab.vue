@@ -323,7 +323,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
 }
 </script>
 
-<style scoped>
+<style>
 /* レイアウト */
 .report-container {
   display: flex;
