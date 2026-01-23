@@ -31,7 +31,8 @@
       <LoadingSpinner v-if="isLoading" />
 
       <!-- ✅ PCで横スクロールを出さず、スマホで縮小するため table-fit を追加 -->
-        <div v-else class="table-wrapper">
+        <div v-else class="table-scroll">
+          <div class="table-frame table-fit">
           <table class="record-table table-fit" role="table" aria-label="勤務実績テーブル">
           <thead>
             <tr>
@@ -87,6 +88,7 @@
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -334,17 +336,27 @@ const cancelSubmission = async (entry: RecordEntry) => {
   text-rendering: optimizeLegibility;
 }
 
+/* ✅ 中央寄せの土台：サマリー以外（main-content内）を中央寄せ */
 .main-content {
   flex: 1;
   min-width: 0;
   padding-right: 6px;
   box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ★月切替・テーブルを中央へ */
 }
 
-/* ===== サマリー（カード＋縦線＋左寄せ） ===== */
+/* ===== サマリー（左寄せ＆内容幅） ===== */
 .summary-card {
-  min-width: 240px;
+  align-self: flex-start;    /* ★サマリーだけ左寄せ固定 */
+  display: inline-block;     /* 内容幅に合わせる */
+  width: fit-content;        /* 文字が見える程度の幅 */
+  max-width: 100%;           /* 画面からはみ出さない */
+  min-width: 0;              /* 240px固定を解除 */
   margin-top: 0.4rem;
+
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
@@ -353,12 +365,14 @@ const cancelSubmission = async (entry: RecordEntry) => {
     0 4px 12px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
+
 .summary-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.95rem;
 }
+
 .summary-table th,
 .summary-table td {
   padding: 10px 12px;
@@ -367,13 +381,20 @@ const cancelSubmission = async (entry: RecordEntry) => {
   text-align: left; /* サマリーは左寄せ */
   white-space: nowrap;
 }
+
 .summary-table tr:last-child th,
 .summary-table tr:last-child td { border-bottom: none; }
+
 .summary-table th:last-child,
 .summary-table td:last-child { border-right: none; }
-.summary-table th { background: #f8fafc; font-weight: 700; width: 120px; }
 
-/* ===== 月切替（統一トーンボタン） ===== */
+.summary-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  width: 120px;
+}
+
+/* ===== 月切替（中央配置） ===== */
 .month-selector {
   display: flex;
   justify-content: center;
@@ -381,6 +402,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   margin: 0 0 0.5rem 0;
   align-items: center;
 }
+
 .nav-btn {
   min-width: 2rem;
   min-height: 2rem;
@@ -390,37 +412,47 @@ const cancelSubmission = async (entry: RecordEntry) => {
   cursor: pointer;
   font-size: 0.95rem;
 }
+
 .nav-btn:hover { background: #f1f5f9; }
+
 .month-selector span { font-weight: 700; }
 
-/* ===== テーブルラッパー ===== */
-.table-wrapper {
+/* ===== テーブル（スクロール担当：枠なし） ===== */
+.table-scroll {
   width: 100%;
-  max-width: 100%; /* ★追加：親幅を超えない */
+  max-width: 100%;
   overflow-x: auto;
+  padding: 0;
+  text-align: center; /* ★中の inline-block（table-frame）を中央に */
+}
+
+/* ===== 枠担当（ここが外枠） ===== */
+.table-frame {
+  display: inline-block; /* 中身サイズに合わせる（中央寄せに効く） */
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow:
     0 1px 1px rgba(15, 23, 42, 0.04),
     0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden; /* 角丸に合わせて中を切る */
 }
 
 /* ✅ デフォルトは縮小しない（PC） */
 .table-fit {
   transform: none;
+  transform-origin: top left;
 }
 
-/* ===== テーブル（PCで横幅に収める） ===== */
+/* ===== 勤務実績テーブル ===== */
 .record-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.92rem;
   color: #0f172a;
-  min-width: 640px; /* ★680→640（まずはこれ） */
+  min-width: 640px;
 }
-
 
 .record-table thead th {
   position: sticky;
@@ -434,6 +466,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
+
 .record-table thead th:last-child { border-right: none; }
 
 .record-table th,
@@ -443,22 +476,22 @@ const cancelSubmission = async (entry: RecordEntry) => {
   border-right: 1px solid #e2e8f0;
   text-align: center;
   white-space: nowrap;
-
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .record-table th:last-child,
 .record-table td:last-child { border-right: none; }
 
-/* ✅ PCで横幅を収める列幅配分（割合） */
-.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 10%; } /* 状態 */
-.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 8%;  } /* 日付 */
-.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 6%;  } /* 曜日 */
-.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 9%;  } /* 出勤 */
-.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 9%;  } /* 退勤 */
-.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 10%; } /* 勤務時間 */
-.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 26%; } /* 作業内容（広め） */
-.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 12%; } /* 操作 */
+/* 列幅配分（割合） */
+.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 10%; }
+.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 8%; }
+.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 6%; }
+.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 9%; }
+.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 9%; }
+.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 10%; }
+.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 26%; }
+.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 12%; }
 
 .record-table select {
   width: 100%;
@@ -471,16 +504,16 @@ const cancelSubmission = async (entry: RecordEntry) => {
   background: #ffffff;
 }
 
-/* デフォルトは白背景（ゼブラなし） */
+/* 行背景 */
 .record-table tbody tr { background: #ffffff; }
 
-/* ===== 状態色 ===== */
+/* 状態色 */
 .record-table tbody tr.status-unsubmitted         { background-color: #ffffff; }
 .record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; }
 .record-table tbody tr.status-pending             { background-color: #fff1a6; }
 .record-table tbody tr.status-approved            { background-color: #dbeafe; }
 
-/* ===== ボタン（提出=青、取消=赤） ===== */
+/* ボタン */
 .primary-btn {
   padding: 0.4rem 0.8rem;
   background-color: #2563eb;
@@ -515,33 +548,24 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
-  /* 全体を縦並びにしてサマリーを上へ */
+  /* 全体を縦並び（サマリーは左のまま、他は中央） */
   .report-container {
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  .summary-card {
-    width: 100%;
-    min-width: 0;
-    margin-top: 0;
-  }
+  /* サマリーは内容幅＆左寄せ維持（ここでは触らなくてOK） */
 
-  /* テーブルは縮小（枠もテーブルに合わせる） */
-  :deep(.record-table.table-fit) {
-    display: inline-block;
+  /* 枠ごと縮小 */
+  :deep(.table-frame.table-fit) {
     transform: scale(0.6);
     transform-origin: top left;
-    width: auto; /* ✅ calcはやめる */
   }
 
-  .table-wrapper {
-    width: fit-content; /* ✅ 枠をテーブル幅に追従 */
-    max-width: 100%;
-    overflow-x: auto;
+  /* 念のため中央寄せ */
+  .table-scroll {
+    text-align: center;
   }
 }
-
-
-
 </style>
+
