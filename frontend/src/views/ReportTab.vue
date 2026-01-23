@@ -365,7 +365,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   align-items: center;
 }
 
-/* ===== サマリー（左寄せ＆内容幅） ===== */
+/* ===== サマリー ===== */
 .summary-card {
   align-self: flex-start;
   display: inline-block;
@@ -422,14 +422,14 @@ const cancelSubmission = async (entry: RecordEntry) => {
   justify-content: center;
 }
 
-/* ✅ ここが「中央基準」の縮小コンテナ（transformはこの箱に集約） */
+/* ✅ ここが「中央基準」の箱（スマホではここを縮小） */
 .scaled-area {
   display: inline-block;
   transform: none;
   transform-origin: top center;
 }
 
-/* ===== 月切替（scaled-area 内で中央） ===== */
+/* ===== 月切替 ===== */
 .month-selector {
   display: flex;
   justify-content: center;
@@ -437,9 +437,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
   margin: 0 0 0.5rem 0;
   align-items: center;
 
-  width: fit-content; /* 中身幅 */
+  width: fit-content;
   margin-left: auto;
-  margin-right: auto; /* scaled-area 内で中央 */
+  margin-right: auto;
 }
 
 .nav-btn {
@@ -458,15 +458,15 @@ const cancelSubmission = async (entry: RecordEntry) => {
   font-weight: 700;
 }
 
-/* ===== テーブル（スクロール担当：枠なし） ===== */
+/* ===== テーブル（スクロール担当） ===== */
 .table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  overflow-x: auto; /* PCはOK */
   padding: 0;
 }
 
-/* ===== 枠担当（ここが外枠） ===== */
+/* ===== 枠担当 ===== */
 .table-frame {
   display: inline-block;
   border: 1px solid #cbd5e1;
@@ -485,7 +485,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   border-spacing: 0;
   font-size: 0.92rem;
   color: #0f172a;
-  min-width: 640px;
+  min-width: 640px; /* PC用 */
 }
 
 .record-table thead th {
@@ -521,37 +521,21 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* 列幅配分（割合） */
 .record-table th:nth-child(1),
-.record-table td:nth-child(1) {
-  width: 10%;
-}
+.record-table td:nth-child(1) { width: 10%; }
 .record-table th:nth-child(2),
-.record-table td:nth-child(2) {
-  width: 8%;
-}
+.record-table td:nth-child(2) { width: 8%; }
 .record-table th:nth-child(3),
-.record-table td:nth-child(3) {
-  width: 6%;
-}
+.record-table td:nth-child(3) { width: 6%; }
 .record-table th:nth-child(4),
-.record-table td:nth-child(4) {
-  width: 9%;
-}
+.record-table td:nth-child(4) { width: 9%; }
 .record-table th:nth-child(5),
-.record-table td:nth-child(5) {
-  width: 9%;
-}
+.record-table td:nth-child(5) { width: 9%; }
 .record-table th:nth-child(6),
-.record-table td:nth-child(6) {
-  width: 10%;
-}
+.record-table td:nth-child(6) { width: 10%; }
 .record-table th:nth-child(7),
-.record-table td:nth-child(7) {
-  width: 26%;
-}
+.record-table td:nth-child(7) { width: 26%; }
 .record-table th:nth-child(8),
-.record-table td:nth-child(8) {
-  width: 12%;
-}
+.record-table td:nth-child(8) { width: 12%; }
 
 .record-table select {
   width: 100%;
@@ -565,23 +549,13 @@ const cancelSubmission = async (entry: RecordEntry) => {
 }
 
 /* 行背景 */
-.record-table tbody tr {
-  background: #ffffff;
-}
+.record-table tbody tr { background: #ffffff; }
 
 /* 状態色 */
-.record-table tbody tr.status-unsubmitted {
-  background-color: #ffffff;
-}
-.record-table tbody tr.status-unsubmitted-weekend {
-  background-color: #ffe4e6;
-}
-.record-table tbody tr.status-pending {
-  background-color: #fff1a6;
-}
-.record-table tbody tr.status-approved {
-  background-color: #dbeafe;
-}
+.record-table tbody tr.status-unsubmitted { background-color: #ffffff; }
+.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; }
+.record-table tbody tr.status-pending { background-color: #fff1a6; }
+.record-table tbody tr.status-approved { background-color: #dbeafe; }
 
 /* ボタン */
 .primary-btn {
@@ -594,9 +568,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   font-weight: 700;
   font-size: 0.9rem;
 }
-.primary-btn:hover {
-  filter: brightness(1.05);
-}
+.primary-btn:hover { filter: brightness(1.05); }
 
 .danger-btn {
   padding: 0.4rem 0.8rem;
@@ -608,9 +580,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
   font-weight: 700;
   font-size: 0.9rem;
 }
-.danger-btn:hover {
-  filter: brightness(1.05);
-}
+.danger-btn:hover { filter: brightness(1.05); }
 
 /* “データなし”表示 */
 .no-data {
@@ -622,34 +592,75 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
+  /* ✅ 画面全体の横スクロールを止める（これ超重要） */
   .report-container {
     flex-direction: column;
     gap: 0.75rem;
-  }
-
-  /* ★ transform縮小はやめる（ズレの元） */
-  .scaled-area {
-    transform: none !important;
-  }
-
-  /* ★ 月切替を画面中央に */
-  .month-selector {
+    align-items: center;
     width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .main-content {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 0;          /* ★これが地味にズレ要因 */
+    overflow-x: hidden;
+  }
+
+  /* スマホ時はサマリーも縮小＆中央へ */
+  .summary-card {
+    align-self: center;
+  }
+
+  /* 中央基準の箱も横はみ出し禁止 */
+  .center-area {
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
     justify-content: center;
   }
 
-  /* ★ テーブル枠を必ず画面中央に寄せる */
+  /* ▼ スマホ縮小率（端末で微調整OK） */
+  .report-container {
+    --m-scale: 0.58;
+  }
+
+  /* まずは “スクロール発生源” を止める */
   .table-scroll {
+    overflow-x: hidden; /* ★スマホは横スクロール禁止 */
     width: 100%;
-    overflow-x: hidden;          /* 見切れ対策：まず横スクロールを止める */
-    display: flex;               /* 中央寄せ確実化 */
+    max-width: 100%;
+    display: flex;
     justify-content: center;
   }
 
-  /* ★ 枠ごと縮小（ここが肝） */
-  .table-frame {
-    zoom: 0.6;                   /* ← ここを端末に合わせて調整 */
+  /* ✅ zoomが効くブラウザ（Chrome/Edge系）はこれが一番安定 */
+  @supports (zoom: 1) {
+    .scaled-area {
+      zoom: var(--m-scale);
+    }
+    .summary-card {
+      zoom: var(--m-scale);
+    }
+  }
+
+  /* ✅ zoomが効かない場合の保険（Safari等） */
+  @supports not (zoom: 1) {
+    .scaled-area {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%) scale(var(--m-scale));
+      transform-origin: top center;
+    }
+    .summary-card {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%) scale(var(--m-scale));
+      transform-origin: top center;
+    }
   }
 }
-
 </style>
+
