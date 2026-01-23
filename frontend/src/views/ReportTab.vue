@@ -524,11 +524,18 @@ const cancelSubmission = async (entry: RecordEntry) => {
     transform-origin: top left;
   }
 
-  .table-wrapper {
-    transform: scale(0.84);     /* ✅ ここを少し強める（0.9 → 0.84） */
+  /* ✅ テーブル縮小は "table-fit" に当てる（PC影響なし） */
+  .table-fit {
+    transform: scale(0.6);          /* ← 好きな縮尺に調整 */
     transform-origin: top left;
-    padding-right: 10px;        /* ✅ 右端が欠ける/ギリギリ対策 */
-    box-sizing: border-box;
+    width: calc(100% / 0.6);        /* ✅ 縮小分の補正：右端見切れ防止 */
+  }
+
+  /* wrapper 側は縮小しない（見切れの原因になるため） */
+  .table-wrapper {
+    transform: none;
+    padding-right: 0;
   }
 }
+
 </style>
