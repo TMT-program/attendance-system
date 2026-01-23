@@ -107,6 +107,7 @@ onMounted(fetchUsers)
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -118,10 +119,11 @@ onMounted(fetchUsers)
   width: fit-content;
 }
 
-/* ✅ wrapperは中央縮小の土台にする */
+/* ✅ wrapperは “スクロール担当” にしない（PCも横スクロールは基本不要） */
 .responsive-wrapper {
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ✅ 中央基準 */
@@ -129,9 +131,10 @@ onMounted(fetchUsers)
   width: 100%;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
-/* ✅ ここをスマホ時に縮小する（transformは基本使わない） */
+/* ✅ ここが「中央基準の箱」（スマホではここを縮小） */
 .scaled-area {
   display: inline-block;
   transform: none;
@@ -140,52 +143,50 @@ onMounted(fetchUsers)
 
 /* カード枠で“くっきり”見せる */
 .table-wrapper {
-  border: 1px solid #94a3b8; /* 外枠を少し濃いめに */
+  border: 1px solid #94a3b8;
   border-radius: 12px;
   background: #ffffff;
   box-shadow:
     0 6px 16px rgba(15, 23, 42, 0.12),
     0 1px 0 rgba(15, 23, 42, 0.06);
-  overflow: hidden; /* 角丸を効かせる */
+  overflow: hidden;
 }
 
-/* くっきり系テーブル（縦線・ヘッダー強調） */
+/* くっきり系テーブル */
 .user-table {
   width: 100%;
-  border-collapse: separate; /* 罫線を明確に */
+  border-collapse: separate;
   border-spacing: 0;
   font-size: 0.95rem;
-  min-width: 600px;
+  min-width: 600px; /* PCでは見やすさ優先 */
   color: #0f172a;
 }
 
 .user-table thead th {
-  background-color: #eaf1ff; /* ヘッダーのコントラストUP */
+  background-color: #eaf1ff;
   font-weight: 700;
   padding: 12px 16px;
-  text-align: left; /* すべて左寄せ */
-  border-bottom: 2px solid #94a3b8; /* 下線太め */
-  border-right: 1px solid #e2e8f0; /* 縦線 */
+  text-align: left;
+  border-bottom: 2px solid #94a3b8;
+  border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 .user-table thead th:last-child {
   border-right: none;
 }
 
-/* セルも左寄せに統一 */
 .user-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0; /* セルの区切り */
-  border-right: 1px solid #e2e8f0; /* 縦線 */
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
   white-space: nowrap;
   vertical-align: middle;
-  text-align: left; /* ← 左寄せ */
+  text-align: left;
 }
 .user-table td:last-child {
   border-right: none;
 }
 
-/* 行ホバーでより“くっきり” */
 .user-table tbody tr:hover {
   background-color: #eef6ff;
 }
@@ -198,7 +199,7 @@ onMounted(fetchUsers)
   font-weight: 600;
 }
 
-/* ページネーション（コントラスト強め） */
+/* ページネーション */
 .pagination {
   margin: 0.9rem 0;
   display: flex;
@@ -229,7 +230,7 @@ onMounted(fetchUsers)
   letter-spacing: 0.02em;
 }
 
-/* ボタン（提出系トーンに統一） */
+/* ボタン */
 .primary-btn {
   background-color: #2563eb;
   color: #ffffff;
@@ -244,37 +245,49 @@ onMounted(fetchUsers)
   filter: brightness(1.05);
 }
 
-/* ===== スマホ最適化（中央縮小＆横スクロール封殺） ===== */
+/* ===== スマホ最適化：中央縮小＆横スクロール封殺 ===== */
 @media (max-width: 600px) {
-  /* 横スクロール封殺（最重要） */
+  /* ✅ “画面全体” と “この画面” の横スクロールを確実に止める */
   .confirm-user-list {
     max-width: 100%;
-    overflow-x: hidden;
+    width: 100%;
     padding: 0.75rem;
-    --m-scale: 0.78; /* ← 端末で微調整するならここ */
+    overflow-x: hidden;
+    box-sizing: border-box;
+
+    /* ▼ 縮小率（必要ならここだけ微調整） */
+    --m-scale: 0.62;
   }
 
   .responsive-wrapper {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   .center-area {
     width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
     display: flex;
     justify-content: center;
+    box-sizing: border-box;
   }
 
-  /* zoomが効く端末はこれが一番安定（中央＆はみ出し防止） */
+  /* ✅ スマホではテーブルの「min-width: 600px」が横スクロール原因になるので解除 */
+  .user-table {
+    min-width: 0;
+  }
+
+  /* ✅ zoom対応ブラウザは zoom が一番安定（横幅実体が縮むのでスクロールが出にくい） */
   @supports (zoom: 1) {
     .scaled-area {
       zoom: var(--m-scale);
     }
   }
 
-  /* zoom非対応（Safari等）の保険 */
+  /* ✅ zoom非対応（Safari等）は transform で中央縮小（実体幅は残るので overflow-x:hidden も必須） */
   @supports not (zoom: 1) {
     .scaled-area {
       position: relative;

@@ -126,10 +126,10 @@ type ApiDayRecord = {
 type ApiMonthData = Record<string, ApiDayRecord>
 
 interface RecordEntry {
-  date: string        // M/D 表示
-  fullDate: string    // YYYY-MM-DD（JST暦日）
-  day: string         // 日〜土
-  dayIndex: number    // 0(日)〜6(土)
+  date: string
+  fullDate: string
+  day: string
+  dayIndex: number
   start?: string
   end?: string
   task?: string
@@ -151,14 +151,12 @@ const toLocalYMD = (y: number, m: number, d: number) =>
 /** 祝日取得（同月の祝日だけ返すAPI想定） */
 const fetchHolidays = async (y: number, m: number) => {
   try {
-    const res = await axios.get<string[]>(
-      `${API_BASE_URL}/api/attendance/holidays`,
-      { params: { year: y, month: String(m).padStart(2, '0') } }
-    )
+    const res = await axios.get<string[]>(`${API_BASE_URL}/api/attendance/holidays`, {
+      params: { year: y, month: String(m).padStart(2, '0') },
+    })
     const arr = Array.isArray(res.data) ? res.data : []
     holidaySet.value = new Set(arr)
   } catch (e) {
-    // フォールバック：祝日が取れなくても土日で判定できるので空セット
     holidaySet.value = new Set()
   }
 }
@@ -167,7 +165,6 @@ const fetchHolidays = async (y: number, m: number) => {
 const fetchRecords = async () => {
   isLoading.value = true
   try {
-    // まず祝日（失敗しても続行）
     await fetchHolidays(year.value, month.value)
 
     const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
@@ -177,17 +174,19 @@ const fetchRecords = async () => {
         month: String(month.value).padStart(2, '0'),
       },
     })
-    const data = (res.data ?? {}) as ApiMonthData
-    const result: RecordEntry[] = []
 
+    // ✅ ts(7053) 回避：Record<string, ApiDayRecord> として扱う
+    const data = (res.data ?? {}) as ApiMonthData
+
+    const result: RecordEntry[] = []
     const daysInMonth = new Date(year.value, month.value, 0).getDate()
     const dayNames = ['日', '月', '火', '水', '木', '金', '土']
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const local = new Date(year.value, month.value - 1, d) // JSTローカル
+      const local = new Date(year.value, month.value - 1, d)
       const fullDate = toLocalYMD(year.value, month.value, d)
-      const dayIndex = local.getDay() // 0=日,6=土
-      const raw = data[fullDate] || {}
+      const dayIndex = local.getDay()
+      const raw = (data[fullDate] ?? {}) as ApiDayRecord
 
       result.push({
         date: `${month.value}/${d}`,
@@ -233,18 +232,10 @@ const nextMonth = () => {
 const isWeekend = (i: number) => i === 0 || i === 6
 const isHoliday = (ymd: string) => holidaySet.value.has(ymd)
 
-/**
- * ステータス→行クラス
- * - 承認済：青
- * - 承認待：黄
- * - 未承認：平日=白、土日/祝日=赤
- */
 const getStatusClass = (status: StatusType, dayIndex: number, ymd: string) => {
   if (status === '承認済') return 'status-approved'
   if (status === '承認待') return 'status-pending'
-  return (isWeekend(dayIndex) || isHoliday(ymd))
-    ? 'status-unsubmitted-weekend'
-    : 'status-unsubmitted'
+  return isWeekend(dayIndex) || isHoliday(ymd) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
 }
 
 /** 承認 */
@@ -338,12 +329,14 @@ watch([year, month], fetchRecords)
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  box-sizing: border-box;
 }
 
 /* ✅ スマホ中央縮小の土台 */
 .responsive-wrapper {
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ✅ 中央基準 */
@@ -351,9 +344,10 @@ watch([year, month], fetchRecords)
   width: 100%;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
-/* ✅ ここをスマホ時に縮小（transformは基本使わない） */
+/* ✅ ここが「中央基準の箱」（スマホではここを縮小） */
 .scaled-area {
   display: inline-block;
   transform: none;
@@ -382,8 +376,8 @@ watch([year, month], fetchRecords)
 .summary-table td {
   padding: 12px 14px;
   border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0; /* 縦線 */
-  text-align: left; /* サマリーは左寄せ */
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
   white-space: nowrap;
 }
 .summary-table tr:last-child th,
@@ -400,7 +394,7 @@ watch([year, month], fetchRecords)
   width: 140px;
 }
 
-/* ===== 月切替（統一トーン） ===== */
+/* ===== 月切替 ===== */
 .month-selector {
   display: flex;
   justify-content: center;
@@ -445,16 +439,17 @@ watch([year, month], fetchRecords)
   filter: brightness(1.05);
 }
 
-/* ✅ テーブルを中央寄せ（スクロールを基本禁止） */
+/* ✅ テーブルは基本「中央寄せ」：横スクロールはスマホでは禁止 */
 .table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto; /* PCは保険としてOK */
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
-/* ===== テーブル枠（くっきり） ===== */
+/* ===== テーブル枠 ===== */
 .table-wrapper {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -472,7 +467,7 @@ watch([year, month], fetchRecords)
   border-spacing: 0;
   font-size: 0.92rem;
   color: #0f172a;
-  min-width: 740px; /* PC想定の最低幅 */
+  min-width: 740px; /* PC想定 */
 }
 
 .record-table thead th {
@@ -506,7 +501,6 @@ watch([year, month], fetchRecords)
   border-right: none;
 }
 
-/* 列幅（コンパクト化） */
 .record-table th:nth-child(1),
 .record-table td:nth-child(1) {
   width: 84px;
@@ -534,11 +528,6 @@ watch([year, month], fetchRecords)
 .record-table th:nth-child(7),
 .record-table td:nth-child(7) {
   width: 160px;
-}
-
-/* デフォルトは白背景 */
-.record-table tbody tr {
-  background: #ffffff;
 }
 
 /* 状態色 */
@@ -575,7 +564,6 @@ watch([year, month], fetchRecords)
 .primary-btn:hover {
   filter: brightness(1.05);
 }
-
 .danger-btn {
   padding: 0.35rem 0.8rem;
   background-color: #ef4444;
@@ -589,7 +577,6 @@ watch([year, month], fetchRecords)
 .danger-btn:hover {
   filter: brightness(1.05);
 }
-
 .secondary-btn {
   padding: 0.35rem 0.8rem;
   background-color: #ffffff;
@@ -616,9 +603,13 @@ watch([year, month], fetchRecords)
 @media (max-width: 600px) {
   .confirm-report-tab {
     max-width: 100%;
+    width: 100%;
     overflow-x: hidden;
     padding: 0.75rem;
-    --m-scale: 0.62; /* ← 端末で微調整するならここ */
+    box-sizing: border-box;
+
+    /* ▼ 縮小率（端末でここだけ調整） */
+    --m-scale: 0.56;
   }
 
   .responsive-wrapper,
@@ -626,16 +617,27 @@ watch([year, month], fetchRecords)
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    box-sizing: border-box;
   }
 
-  /* zoomが効く端末はこれが一番安定（中央＆はみ出し防止） */
+  /* ✅ “横スクロール発生源” を封殺（最重要） */
+  .table-scroll {
+    overflow-x: hidden; /* スマホは横スクロール禁止 */
+  }
+
+  /* ✅ スマホではテーブルの min-width がスクロール原因になるので解除 */
+  .record-table {
+    min-width: 0;
+  }
+
+  /* ✅ zoomが効く端末はこれが一番安定（実体幅が縮む） */
   @supports (zoom: 1) {
     .scaled-area {
       zoom: var(--m-scale);
     }
   }
 
-  /* zoom非対応（Safari等）の保険 */
+  /* ✅ zoom非対応（Safari等）は transform で中央縮小（overflow-x:hidden必須） */
   @supports not (zoom: 1) {
     .scaled-area {
       position: relative;
@@ -650,12 +652,7 @@ watch([year, month], fetchRecords)
     min-width: 0;
   }
 
-  /* テーブル横スクロールは出さない */
-  .table-scroll {
-    overflow-x: hidden;
-  }
-
-  /* CSVボタンが右に寄りすぎるのを防ぐ（中央寄せ） */
+  /* CSVボタンが右に寄りすぎるのを防ぐ */
   .button-group {
     justify-content: center;
   }

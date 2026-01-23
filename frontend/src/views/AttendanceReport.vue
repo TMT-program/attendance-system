@@ -76,7 +76,7 @@ const tabs = ref<TabType[]>(['勤怠', '勤務実績'])
 const currentTab = ref<TabType>('勤怠')
 
 const uid = ref<string | null>(null)
-const username = ref<string>('') // ← 追加：ログイン中ユーザー名表示用
+const username = ref<string>('') // ログイン中ユーザー名表示用
 const attendance = ref<{ start?: string; end?: string }>({})
 const isAdmin = ref(false)
 const selectedUser = ref<any | null>(null)
@@ -122,7 +122,8 @@ onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       uid.value = user.uid
-      username.value = user.displayName || user.email || '' // ← 取得して保持
+      username.value = user.displayName || user.email || ''
+
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       if (userDoc.exists()) {
         isAdmin.value = !!userDoc.data().isAdmin
@@ -130,6 +131,7 @@ onMounted(() => {
           tabs.value.push('勤務実績確認')
         }
       }
+
       fetchRecords()
     }
   })
@@ -156,6 +158,7 @@ const fetchRecords = async () => {
       const fullDate = dateObj.toISOString().slice(0, 10)
       const dayIndex = dateObj.getDay()
       const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+
       result.push({
         date: `${month.value}/${d}`,
         fullDate,
@@ -209,6 +212,9 @@ const nextMonth = () => {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   color: #0f172a;
+
+  /* ✅ 子が横にはみ出しても「ページ全体の横幅」を広げない（タブのブレ防止） */
+  overflow-x: hidden;
 }
 
 .header {
@@ -246,6 +252,13 @@ const nextMonth = () => {
   border-bottom: 1px solid #cbd5e1;
   margin-bottom: 1rem;
   gap: 0.5rem;
+
+  /* ✅ タブ行を常に同じ“枠幅”として扱う（コンテンツ差で見た目が揺れにくい） */
+  width: 100%;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .tab-button {
@@ -258,6 +271,12 @@ const nextMonth = () => {
   color: #0f172a;
   border-radius: 10px 10px 0 0;
   white-space: nowrap;
+
+  /* ✅ タブの高さを固定して、切替時のガタつきを抑える */
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-button.active {
@@ -267,7 +286,17 @@ const nextMonth = () => {
 
 .tab-content {
   min-height: 300px;
+
+  /* ✅ タブ中身が横にはみ出しても親の幅を変えない（中央基準がズレない） */
+  width: 100%;
+  overflow-x: hidden;
 }
+
+/*
+  ✅ PCで「スクロールバーが出る/出ない」で横幅が揺れる場合は、
+  App.vue か main.css に以下を追加すると安定します（scopedではなくグローバル推奨）
+  html { overflow-y: scroll; }
+*/
 
 /* スマホ */
 @media (max-width: 600px) {
@@ -286,7 +315,7 @@ const nextMonth = () => {
     text-align: center;
   }
 
-  /* ✅ ここが肝：タブを画面幅に収める */
+  /* ✅ タブを画面幅に収める */
   .tab-menu {
     justify-content: space-between;
     gap: 0.35rem;
@@ -300,7 +329,6 @@ const nextMonth = () => {
     font-size: 0.85rem;
     text-align: center;
 
-    /* 収まらない場合は省略表示（PCはそのまま） */
     overflow: hidden;
     text-overflow: ellipsis;
   }
