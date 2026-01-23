@@ -21,74 +21,87 @@
     </div>
 
     <div class="main-content">
-      <!-- 月切替 -->
-      <div class="month-selector">
-        <button class="nav-btn" @click="prevMonth">←</button>
-        <span>{{ year }}年{{ month }}月</span>
-        <button class="nav-btn" @click="nextMonth">→</button>
-      </div>
+      <!-- ✅ 中央寄せの基準を統一：月切替 + テーブルを同じ縮小コンテナに入れる -->
+      <div class="center-area">
+        <div class="scaled-area">
+          <!-- 月切替 -->
+          <div class="month-selector">
+            <button class="nav-btn" @click="prevMonth">←</button>
+            <span>{{ year }}年{{ month }}月</span>
+            <button class="nav-btn" @click="nextMonth">→</button>
+          </div>
 
-      <LoadingSpinner v-if="isLoading" />
+          <LoadingSpinner v-if="isLoading" />
 
-      <!-- ✅ PCで横スクロールを出さず、スマホで縮小するため table-fit を追加 -->
-        <div v-else class="table-scroll">
-          <div class="table-frame table-fit">
-          <table class="record-table table-fit" role="table" aria-label="勤務実績テーブル">
-          <thead>
-            <tr>
-              <th scope="col">状態</th>
-              <th scope="col">日付</th>
-              <th scope="col">曜日</th>
-              <th scope="col">出勤</th>
-              <th scope="col">退勤</th>
-              <th scope="col">勤務時間</th>
-              <th scope="col">作業内容</th>
-              <th scope="col">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="entry in records"
-              :key="entry.fullDate"
-              :class="getStatusClass(entry.status, entry.dayIndex, entry.fullDate)"
-            >
-              <td>{{ entry.status }}</td>
-              <td :title="entry.fullDate">{{ entry.date }}</td>
-              <td>{{ entry.day }}</td>
-              <td>{{ entry.start || '-' }}</td>
-              <td>{{ entry.end || '-' }}</td>
-              <td>{{ entry.workTime || '-' }}</td>
-              <td>
-                <select v-model="entry.task" :disabled="entry.status !== '未承認'">
-                  <option value="">-</option>
-                  <option v-for="opt in taskOptions" :key="opt" :value="opt">{{ opt }}</option>
-                </select>
-              </td>
-              <td>
-                <button
-                  class="primary-btn"
-                  v-if="entry.status === '未承認'"
-                  @click="submitReport(entry)"
-                >
-                  提出
-                </button>
-                <button
-                  class="danger-btn"
-                  v-else-if="entry.status === '承認待'"
-                  @click="cancelSubmission(entry)"
-                >
-                  取消
-                </button>
-                <span v-else>-</span>
-              </td>
-            </tr>
-            <tr v-if="records.length === 0">
-              <td class="no-data" colspan="8">データがありません</td>
-            </tr>
-          </tbody>
-        </table>
+          <!-- テーブル -->
+          <div v-else class="table-scroll">
+            <div class="table-frame">
+              <table class="record-table" role="table" aria-label="勤務実績テーブル">
+                <thead>
+                  <tr>
+                    <th scope="col">状態</th>
+                    <th scope="col">日付</th>
+                    <th scope="col">曜日</th>
+                    <th scope="col">出勤</th>
+                    <th scope="col">退勤</th>
+                    <th scope="col">勤務時間</th>
+                    <th scope="col">作業内容</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr
+                    v-for="entry in records"
+                    :key="entry.fullDate"
+                    :class="getStatusClass(entry.status, entry.dayIndex, entry.fullDate)"
+                  >
+                    <td>{{ entry.status }}</td>
+                    <td :title="entry.fullDate">{{ entry.date }}</td>
+                    <td>{{ entry.day }}</td>
+                    <td>{{ entry.start || '-' }}</td>
+                    <td>{{ entry.end || '-' }}</td>
+                    <td>{{ entry.workTime || '-' }}</td>
+                    <td>
+                      <select v-model="entry.task" :disabled="entry.status !== '未承認'">
+                        <option value="">-</option>
+                        <option v-for="opt in taskOptions" :key="opt" :value="opt">
+                          {{ opt }}
+                        </option>
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        class="primary-btn"
+                        v-if="entry.status === '未承認'"
+                        @click="submitReport(entry)"
+                      >
+                        提出
+                      </button>
+
+                      <button
+                        class="danger-btn"
+                        v-else-if="entry.status === '承認待'"
+                        @click="cancelSubmission(entry)"
+                      >
+                        取消
+                      </button>
+
+                      <span v-else>-</span>
+                    </td>
+                  </tr>
+
+                  <tr v-if="records.length === 0">
+                    <td class="no-data" colspan="8">データがありません</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- /table -->
+        </div>
       </div>
-    </div>
+      <!-- /center-area -->
     </div>
   </div>
 </template>
@@ -144,9 +157,11 @@ const calculateWorkDuration = (startStr?: string, endStr?: string): string | und
   const [sh, sm] = startStr.split(':').map(Number)
   const [eh, em] = endStr.split(':').map(Number)
   if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return undefined
+
   const startMin = sh * 60 + sm
   const endMin = eh * 60 + em
   if (endMin <= startMin) return undefined
+
   const diffMin = endMin - startMin
   const h = Math.floor(diffMin / 60)
   const m = diffMin % 60
@@ -202,13 +217,13 @@ const fetchRecords = async () => {
     const data = (res.data ?? {}) as Record<string, any>
 
     const result: RecordEntry[] = []
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土']
 
     for (let d = 1; d <= daysInMonth; d++) {
       // JST基準：ローカル時刻のDateで曜日を決定
       const local = new Date(year.value, month.value - 1, d) // 0=1月
-      const full = toLocalYMD(year.value, month.value, d)   // YYYY-MM-DD（JST暦日）
-      const dayIndex = local.getDay()                       // 0=日, ... ,6=土（JST）
-      const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+      const full = toLocalYMD(year.value, month.value, d)    // YYYY-MM-DD（JST暦日）
+      const dayIndex = local.getDay()                        // 0=日, ... ,6=土（JST）
 
       const raw = (data[full] ?? {}) as Record<string, any>
       const start: string | undefined = raw.start
@@ -272,7 +287,9 @@ const getStatusClass = (status: StatusType, dayIndex: number, ymd: string) => {
   if (status === '承認済') return 'status-approved'
   if (status === '承認待') return 'status-pending'
   // 未承認のみ週末/祝日で赤
-  return (isWeekend(dayIndex) || isHoliday(ymd)) ? 'status-unsubmitted-weekend' : 'status-unsubmitted'
+  return (isWeekend(dayIndex) || isHoliday(ymd))
+    ? 'status-unsubmitted-weekend'
+    : 'status-unsubmitted'
 }
 
 /** 提出 */
@@ -296,7 +313,7 @@ const submitReport = async (entry: RecordEntry) => {
       start: entry.start,
       end: entry.end,
       task: taskVal,
-      status: '承認待'
+      status: '承認待',
     })
     entry.status = '承認待'
   } catch (error) {
@@ -314,7 +331,7 @@ const cancelSubmission = async (entry: RecordEntry) => {
       start: entry.start,
       end: entry.end,
       task: entry.task,
-      status: '未承認'
+      status: '未承認',
     })
   } catch (error) {
     console.error('勤務報告の取消に失敗しました:', error)
@@ -345,16 +362,16 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
   display: flex;
   flex-direction: column;
-  align-items: center; /* ★月切替・テーブルを中央へ */
+  align-items: center;
 }
 
 /* ===== サマリー（左寄せ＆内容幅） ===== */
 .summary-card {
-  align-self: flex-start;    /* ★サマリーだけ左寄せ固定 */
-  display: inline-block;     /* 内容幅に合わせる */
-  width: fit-content;        /* 文字が見える程度の幅 */
-  max-width: 100%;           /* 画面からはみ出さない */
-  min-width: 0;              /* 240px固定を解除 */
+  align-self: flex-start;
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 0.4rem;
 
   border: 1px solid #cbd5e1;
@@ -377,16 +394,20 @@ const cancelSubmission = async (entry: RecordEntry) => {
 .summary-table td {
   padding: 10px 12px;
   border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0; /* 縦線 */
-  text-align: left; /* サマリーは左寄せ */
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
   white-space: nowrap;
 }
 
 .summary-table tr:last-child th,
-.summary-table tr:last-child td { border-bottom: none; }
+.summary-table tr:last-child td {
+  border-bottom: none;
+}
 
 .summary-table th:last-child,
-.summary-table td:last-child { border-right: none; }
+.summary-table td:last-child {
+  border-right: none;
+}
 
 .summary-table th {
   background: #f8fafc;
@@ -394,13 +415,31 @@ const cancelSubmission = async (entry: RecordEntry) => {
   width: 120px;
 }
 
-/* ===== 月切替（中央配置） ===== */
+/* ===== 中央寄せ：月切替＋テーブルを同一基準にする ===== */
+.center-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* ✅ ここが「中央基準」の縮小コンテナ（transformはこの箱に集約） */
+.scaled-area {
+  display: inline-block;
+  transform: none;
+  transform-origin: top center;
+}
+
+/* ===== 月切替（scaled-area 内で中央） ===== */
 .month-selector {
   display: flex;
   justify-content: center;
   gap: 0.75rem;
   margin: 0 0 0.5rem 0;
   align-items: center;
+
+  width: fit-content; /* 中身幅 */
+  margin-left: auto;
+  margin-right: auto; /* scaled-area 内で中央 */
 }
 
 .nav-btn {
@@ -412,10 +451,12 @@ const cancelSubmission = async (entry: RecordEntry) => {
   cursor: pointer;
   font-size: 0.95rem;
 }
-
-.nav-btn:hover { background: #f1f5f9; }
-
-.month-selector span { font-weight: 700; }
+.nav-btn:hover {
+  background: #f1f5f9;
+}
+.month-selector span {
+  font-weight: 700;
+}
 
 /* ===== テーブル（スクロール担当：枠なし） ===== */
 .table-scroll {
@@ -423,25 +464,18 @@ const cancelSubmission = async (entry: RecordEntry) => {
   max-width: 100%;
   overflow-x: auto;
   padding: 0;
-  text-align: center; /* ★中の inline-block（table-frame）を中央に */
 }
 
 /* ===== 枠担当（ここが外枠） ===== */
 .table-frame {
-  display: inline-block; /* 中身サイズに合わせる（中央寄せに効く） */
+  display: inline-block;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow:
     0 1px 1px rgba(15, 23, 42, 0.04),
     0 4px 12px rgba(15, 23, 42, 0.06);
-  overflow: hidden; /* 角丸に合わせて中を切る */
-}
-
-/* ✅ デフォルトは縮小しない（PC） */
-.table-fit {
-  transform: none;
-  transform-origin: top left;
+  overflow: hidden;
 }
 
 /* ===== 勤務実績テーブル ===== */
@@ -466,8 +500,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
   border-right: 1px solid #e2e8f0;
   white-space: nowrap;
 }
-
-.record-table thead th:last-child { border-right: none; }
+.record-table thead th:last-child {
+  border-right: none;
+}
 
 .record-table th,
 .record-table td {
@@ -479,19 +514,44 @@ const cancelSubmission = async (entry: RecordEntry) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .record-table th:last-child,
-.record-table td:last-child { border-right: none; }
+.record-table td:last-child {
+  border-right: none;
+}
 
 /* 列幅配分（割合） */
-.record-table th:nth-child(1), .record-table td:nth-child(1) { width: 10%; }
-.record-table th:nth-child(2), .record-table td:nth-child(2) { width: 8%; }
-.record-table th:nth-child(3), .record-table td:nth-child(3) { width: 6%; }
-.record-table th:nth-child(4), .record-table td:nth-child(4) { width: 9%; }
-.record-table th:nth-child(5), .record-table td:nth-child(5) { width: 9%; }
-.record-table th:nth-child(6), .record-table td:nth-child(6) { width: 10%; }
-.record-table th:nth-child(7), .record-table td:nth-child(7) { width: 26%; }
-.record-table th:nth-child(8), .record-table td:nth-child(8) { width: 12%; }
+.record-table th:nth-child(1),
+.record-table td:nth-child(1) {
+  width: 10%;
+}
+.record-table th:nth-child(2),
+.record-table td:nth-child(2) {
+  width: 8%;
+}
+.record-table th:nth-child(3),
+.record-table td:nth-child(3) {
+  width: 6%;
+}
+.record-table th:nth-child(4),
+.record-table td:nth-child(4) {
+  width: 9%;
+}
+.record-table th:nth-child(5),
+.record-table td:nth-child(5) {
+  width: 9%;
+}
+.record-table th:nth-child(6),
+.record-table td:nth-child(6) {
+  width: 10%;
+}
+.record-table th:nth-child(7),
+.record-table td:nth-child(7) {
+  width: 26%;
+}
+.record-table th:nth-child(8),
+.record-table td:nth-child(8) {
+  width: 12%;
+}
 
 .record-table select {
   width: 100%;
@@ -505,13 +565,23 @@ const cancelSubmission = async (entry: RecordEntry) => {
 }
 
 /* 行背景 */
-.record-table tbody tr { background: #ffffff; }
+.record-table tbody tr {
+  background: #ffffff;
+}
 
 /* 状態色 */
-.record-table tbody tr.status-unsubmitted         { background-color: #ffffff; }
-.record-table tbody tr.status-unsubmitted-weekend { background-color: #ffe4e6; }
-.record-table tbody tr.status-pending             { background-color: #fff1a6; }
-.record-table tbody tr.status-approved            { background-color: #dbeafe; }
+.record-table tbody tr.status-unsubmitted {
+  background-color: #ffffff;
+}
+.record-table tbody tr.status-unsubmitted-weekend {
+  background-color: #ffe4e6;
+}
+.record-table tbody tr.status-pending {
+  background-color: #fff1a6;
+}
+.record-table tbody tr.status-approved {
+  background-color: #dbeafe;
+}
 
 /* ボタン */
 .primary-btn {
@@ -524,7 +594,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
   font-weight: 700;
   font-size: 0.9rem;
 }
-.primary-btn:hover { filter: brightness(1.05); }
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
 
 .danger-btn {
   padding: 0.4rem 0.8rem;
@@ -536,7 +608,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
   font-weight: 700;
   font-size: 0.9rem;
 }
-.danger-btn:hover { filter: brightness(1.05); }
+.danger-btn:hover {
+  filter: brightness(1.05);
+}
 
 /* “データなし”表示 */
 .no-data {
@@ -548,24 +622,16 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== スマホ最適化 ===== */
 @media (max-width: 600px) {
-  /* 全体を縦並び（サマリーは左のまま、他は中央） */
+  /* 全体を縦並び（サマリーは左のまま） */
   .report-container {
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  /* サマリーは内容幅＆左寄せ維持（ここでは触らなくてOK） */
-
-  /* 枠ごと縮小 */
-  :deep(.table-frame.table-fit) {
+  /* ✅ 月切替とテーブルが「同じ基準」で縮むのでズレない */
+  .scaled-area {
     transform: scale(0.6);
-    transform-origin: top left;
-  }
-
-  /* 念のため中央寄せ */
-  .table-scroll {
-    text-align: center;
+    transform-origin: top center;
   }
 }
 </style>
-
