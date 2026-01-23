@@ -437,6 +437,9 @@ const toggleAdmin = async (user: User, event: Event) => {
   align-items: center;
   padding: 6px 0;
   border-bottom: 1px dashed #e2e8f0;
+
+  /* ✅ これが超重要：右カラムが縮められるようになる */
+  min-width: 0;
 }
 
 .card-row:last-child {
@@ -454,15 +457,18 @@ const toggleAdmin = async (user: User, event: Event) => {
   font-size: 0.95rem;
   color: #0f172a;
 
-  /* ✅ 左寄せで統一（中央に見える問題対策） */
   text-align: left;
   justify-self: start;
 
-  /* PCでは今まで通り省略 */
+  /* ✅ gridの中で縮めるために必要 */
+  min-width: 0;
+
+  /* PCでは省略のまま */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 
 /* ✅ スマホのときだけ「横スクロールで全文確認」 */
 @media (max-width: 600px) {
