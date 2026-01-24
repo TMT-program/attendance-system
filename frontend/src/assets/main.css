@@ -1,9 +1,29 @@
-html, body {
+/* ===== Global Reset / Layout Base ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+
+  /* ✅ 全画面の横スクロールを防ぐ（まずは clip 推奨） */
+  overflow-x: clip;
 }
 
+/* ✅ #app（Vueのルート）もはみ出しに強くする */
+#app {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ===== no-scroll (ログイン画面などで使用) ===== */
 body.no-scroll {
   overflow: hidden;
 }
