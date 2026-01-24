@@ -11,6 +11,14 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 })
 
+router.get('/health', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+  })
+})
+
 // 一覧取得: Firestore からファイル名を取得し、StorageのURLを返す
 router.get('/', async (req, res) => {
   try {
