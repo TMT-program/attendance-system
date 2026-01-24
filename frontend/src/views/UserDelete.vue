@@ -430,6 +430,7 @@ const deleteUsers = async () => {
   border-radius: 12px;
   padding: 12px;
   margin: 10px;
+  overflow: hidden;
   background: #ffffff;
   box-shadow:
     0 1px 1px rgba(15, 23, 42, 0.04),
@@ -504,6 +505,10 @@ const deleteUsers = async () => {
   }
 
   .value.scrollable {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    white-space: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     text-overflow: clip;

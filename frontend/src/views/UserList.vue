@@ -424,6 +424,7 @@ const toggleAdmin = async (user: User, event: Event) => {
   border-radius: 12px;
   padding: 12px;
   margin: 10px;
+  overflow: hidden;
   background: #ffffff;
   box-shadow:
     0 1px 1px rgba(15, 23, 42, 0.04),
@@ -483,6 +484,22 @@ const toggleAdmin = async (user: User, event: Event) => {
   .value::-webkit-scrollbar {
     height: 6px;
   }
+
+  .search-box input {
+    font-size: 16px;              /* ✅ iOSの自動ズーム抑制 */
+    line-height: 1.2;
+  }
+}
+
+.value.scrollable {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  -webkit-overflow-scrolling: touch;
 }
 
 
