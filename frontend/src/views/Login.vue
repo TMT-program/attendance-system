@@ -30,7 +30,10 @@
           {{ loading ? 'ログイン中...' : 'ログイン' }}
         </button>
 
-        <p class="error-message">{{ error || '　' }}</p>
+        <!-- ✅ メッセージ枠は常に確保し、長文でも高さが変わりにくいようにする -->
+        <p class="error-message" aria-live="polite">
+          {{ error || '　' }}
+        </p>
 
         <p class="register-link">
           アカウントをお持ちでない方は
@@ -131,7 +134,6 @@ async function warmupBackend() {
       params: { t: Date.now() },
       timeout: 8000,
     })
-
   } catch (e) {
     console.debug('[warmup] backend skipped/failed:', e)
   }
@@ -281,14 +283,23 @@ button[type='submit']:disabled {
   cursor: not-allowed;
 }
 
+/* ✅ ここが肝：エラーメッセージ表示で高さが変わらないように、2行分を確保 */
 .error-message {
   width: 100%;
-  min-height: 1.5em;
+  min-height: calc(1.5em * 2); /* 2行分確保 */
   margin-top: 1rem;
   color: #dc2626;
   font-weight: bold;
   text-align: center;
   padding: 0 0.5rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 長文での暴れを抑える */
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .register-link {
@@ -298,6 +309,7 @@ button[type='submit']:disabled {
   color: #475569;
 }
 
+/* リンク風ボタン */
 .link-button {
   background: none;
   border: none;
@@ -306,10 +318,19 @@ button[type='submit']:disabled {
   text-decoration: underline;
   cursor: pointer;
   margin-left: 0.4rem;
+  padding: 0; /* ✅ 余計な見た目変化を防止 */
 }
 
+/* hover */
 .link-button:hover {
   color: #1e40af;
+}
+
+/* ✅ クリック後に出る黒枠（focus outline）を消す */
+.link-button:focus,
+.link-button:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 @media (max-width: 480px) {
