@@ -141,6 +141,15 @@ const goAnnouncements = () => {
   gap: 2rem;
 }
 
+@media (min-width: 900px) {
+  .menu-grid {
+    flex-direction: row;
+    flex-wrap: nowrap;     /* ← 折り返し禁止 */
+    justify-content: center;
+    gap: 2rem;
+  }
+}
+
 .menu-card {
   width: 260px;
   height: 160px;
