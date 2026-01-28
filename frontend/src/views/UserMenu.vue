@@ -72,6 +72,15 @@ const handleNavigate = (view: 'list' | 'add' | 'delete') => {
   min-height: 200px; /* スピナーの見やすさ確保 */
 }
 
+@media (min-width: 900px) {
+  .menu-grid {
+    flex-direction: row;
+    flex-wrap: nowrap;      /* ← ここが肝：折り返さない */
+    justify-content: center;
+    gap: 2rem;              /* ← PCは広めでOK */
+  }
+}
+
 .spinner-overlay {
   position: absolute;
   inset: 0;
