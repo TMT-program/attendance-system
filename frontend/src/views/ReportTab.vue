@@ -624,16 +624,15 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
   /* ▼ スマホ縮小率（端末で微調整OK） */
   .report-container {
-    --m-scale: 0.45;
+    --m-scale: 0.40;
   }
 
-  /* まずは “スクロール発生源” を止める */
   .table-scroll {
-    overflow-x: hidden; /* ★スマホは横スクロール禁止 */
     width: 100%;
     max-width: 100%;
-    display: flex;
-    justify-content: center;
+    overflow-x: auto;                 /* ✅ ここを復活 */
+    -webkit-overflow-scrolling: touch;
+    display: block;                   /* flex中心寄せは外すのが安全 */
   }
 
   /* ✅ zoomが効くブラウザ（Chrome/Edge系）はこれが一番安定 */
