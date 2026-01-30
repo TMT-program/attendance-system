@@ -103,19 +103,5 @@ PASS：UserTest99
 - 本リポジトリ：  
   https://github.com/TMT-program/attendance-system
 
----
-
-  ## 🗺️ システム構成図（デプロイ構成）
-
-```mermaid
-flowchart LR
-  U[ユーザー<br/>PC / スマホ] -->|HTTPS| FE[Vercel<br/>Vue3 + Vite]
-
-  FE -->|REST API(axios)| BE[Render<br/>Node.js + Express]
-
-  FE -->|認証| AUTH[Firebase Authentication]
-  BE -->|勤怠/勤務報告データ| DB[Firebase Firestore]
-  BE -->|周知PDFのアップ/削除| ST[Firebase Storage]
-  FE -->|周知PDFの閲覧| ST
 
 
