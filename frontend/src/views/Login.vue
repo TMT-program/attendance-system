@@ -12,6 +12,7 @@
             v-model="email"
             required
             placeholder="example@mail.com"
+            autocomplete="username"
           />
         </div>
 
@@ -23,6 +24,7 @@
             v-model="password"
             required
             placeholder="パスワードを入力"
+            autocomplete="current-password"
           />
         </div>
 
@@ -45,6 +47,32 @@
             新規登録
           </button>
         </p>
+
+        <!-- ✅ デモ案内（新規登録の下） -->
+        <div v-if="IS_DEMO" class="demo-info" aria-label="デモ環境ログイン情報">
+          <p class="demo-title">デモ環境ログインは以下のユーザーをご利用ください。</p>
+
+          <div class="demo-box">
+            <p class="demo-label">■管理者ユーザー</p>
+            <p class="demo-cred">TMT_Admin@example.com</p>
+            <p class="demo-cred">AdminTest99</p>
+
+            <p class="demo-label demo-mt">■一般ユーザー</p>
+            <p class="demo-cred">TMT_User@example.com</p>
+            <p class="demo-cred">UserTest99</p>
+
+            <p class="demo-label demo-mt">システム説明書(GitHubURL)</p>
+            <a
+              class="demo-link"
+              href="https://github.com/TMT-program/attendance-system"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://github.com/TMT-program/attendance-system
+            </a>
+          </div>
+        </div>
+
       </form>
     </div>
   </div>
@@ -82,6 +110,7 @@ const router = useRouter()
  * ライフサイクル
  * ========================= */
 onMounted(() => {
+  // ✅ body 自体はスクロールさせず、login-wrapper 内でスクロールさせる
   document.documentElement.classList.add('no-scroll')
   document.body.classList.add('no-scroll')
 
@@ -196,15 +225,30 @@ async function handleRegister() {
 }
 
 .login-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* ✅ どの端末でも下まで見れるように「内部スクロール」を許可 */
   height: 100dvh;
   width: 100%;
   padding: 16px;
   background-color: #f8fafc;
-  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow-y: auto;   /* ✅ 縦スクロールOK */
+  overflow-x: hidden; /* ✅ 横は出さない */
+  -webkit-overflow-scrolling: touch; /* iOS対策 */
+
+  /* ✅ ここを追加：スクロールは維持してバーだけ非表示 */
+  -ms-overflow-style: none; /* IE/旧Edge */
+  scrollbar-width: none;    /* Firefox */
 }
+
+/* ✅ ここを追加：Chrome/Safari */
+.login-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
 
 .login-card {
   background-color: #ffffff;
@@ -214,6 +258,9 @@ async function handleRegister() {
   width: 100%;
   max-width: 420px;
   border: 1px solid #d1d5db;
+
+  /* ✅ 高さが足りない時も card が見切れにくい */
+  margin: 12px 0;
 }
 
 .login-title {
@@ -297,7 +344,6 @@ button[type='submit']:disabled {
   align-items: center;
   justify-content: center;
 
-  /* 長文での暴れを抑える */
   overflow: hidden;
   word-break: break-word;
 }
@@ -318,19 +364,84 @@ button[type='submit']:disabled {
   text-decoration: underline;
   cursor: pointer;
   margin-left: 0.4rem;
-  padding: 0; /* ✅ 余計な見た目変化を防止 */
+  padding: 0;
 }
 
-/* hover */
 .link-button:hover {
   color: #1e40af;
 }
 
-/* ✅ クリック後に出る黒枠（focus outline）を消す */
 .link-button:focus,
 .link-button:focus-visible {
   outline: none;
   box-shadow: none;
+}
+
+/* ✅ デモ案内（新規登録の下） */
+.demo-info {
+  width: 100%;
+  margin-top: 1.2rem;
+}
+
+.demo-title {
+  font-size: 0.88rem;
+  color: #334155;
+  text-align: center;
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+}
+
+.demo-box {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+
+.demo-label {
+  margin: 0.35rem 0 0.25rem;
+  font-size: 0.9rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.demo-mt {
+  margin-top: 0.7rem;
+}
+
+.demo-cred {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #0f172a;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.demo-link {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+  color: #2563eb;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.demo-link:hover {
+  color: #1e40af;
+}
+
+/* ✅ 画面の高さが小さい端末では、中央寄せより「上寄せ」の方が見やすい */
+@media (max-height: 740px) {
+  .login-wrapper {
+    align-items: flex-start;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .login-title {
+    margin-bottom: 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -341,6 +452,17 @@ button[type='submit']:disabled {
   .login-title {
     font-size: 1.4rem;
     white-space: normal;
+  }
+
+  .demo-box {
+    padding: 0.8rem 0.9rem;
+  }
+
+  .demo-title,
+  .demo-label,
+  .demo-cred,
+  .demo-link {
+    font-size: 0.85rem;
   }
 }
 </style>
