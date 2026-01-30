@@ -50,7 +50,7 @@
 
         <!-- ✅ デモ案内（新規登録の下） -->
         <div v-if="IS_DEMO" class="demo-info" aria-label="デモ環境ログイン情報">
-          <p class="demo-title">デモ環境ログインは以下のユーザーをご利用ください。</p>
+          <p class="demo-title">ログインは以下のユーザーをご利用ください。</p>
 
           <div class="demo-box">
             <p class="demo-label">■管理者ユーザー</p>
