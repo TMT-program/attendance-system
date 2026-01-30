@@ -1,37 +1,85 @@
 # 📅 勤怠管理システム（Attendance Management System）
 
-## 📝 概要
+Vue + Node.js + Firebase を用いて構築した、**勤怠・勤務報告管理ツール（ポートフォリオ）**です。  
+出勤/退勤打刻、勤務報告の提出・承認、ユーザー管理、周知事項PDFの共有まで、実務を想定した機能を一通り実装しています。
 
-このシステムは、**勤怠・勤務報告管理ツール**です。  
-ユーザーによる出勤・退勤の打刻、作業内容の記録・提出、管理者による勤務実績の確認・承認、さらに周知事項のPDF共有機能まで、**現場で必要な機能を一通り備えています**。
+---
+
+## 🌐 デモURL（要ログイン）
+
+- フロントエンド：  
+  https://attendance-system-eight-iota.vercel.app/login
+
+> ※ログイン画面にもデモ用アカウント情報を記載しています。
+
+### デモ用アカウント
+
+**■管理者ユーザー**  
+USER：TMT_Admin@example.com  
+PASS：AdminTest99  
+
+**■一般ユーザー**  
+USER：TMT_User@example.com  
+PASS：UserTest99  
 
 ---
 
 ## 🚀 主な機能
 
-- 🔐 Firebase Authentication によるログイン（メールアドレス/パスワード）
-- 🕒 出勤・退勤打刻（同日に1レコード記録）
-- 📋 作業内容の記録と「未提出／承認待ち／承認済み」ステータス管理
-- 📊 勤務実績画面（勤務時間・休暇数などを月単位で表示）
-- ✅ 管理者による勤務報告の確認・承認
-- 👥 ユーザーの追加・削除・管理者権限の切り替え
-- 📄 管理者によるPDF周知ファイルのアップロード・共有
-- 📱 スマホ画面対応（順次改良中）
+### 🔐 認証 / 権限
+- Firebase Authentication によるログイン（メールアドレス/パスワード）
+- Firestore に保存した `role`（管理者/一般）で画面・操作を出し分け
+
+### 🕒 勤怠打刻
+- 出勤・退勤の打刻（Firestoreに保存）
+- 打刻データは日付単位で管理
+
+### 📋 勤務報告（提出・承認）
+- 作業内容の選択（プルダウン）
+- 状態管理（未承認 / 承認待ち / 承認済）
+- 状態に応じて行の背景色を変更
+- 管理者による勤務報告の確認・承認（ステータス更新）
+
+### 📊 勤務実績
+- 月単位の勤務実績テーブル表示
+- 勤務時間（出勤〜退勤の差）を **HH:MM** 形式で表示
+- 月次サマリー表示（ユーザー名・勤務時間合計・休暇日数 など）
+- 土日祝の表示（薄赤背景）
+
+### 👥 ユーザー管理（管理者のみ）
+- ユーザー一覧（検索・ページネーション）
+- 管理者権限の ON/OFF 切替
+- ユーザー削除（確認UI・API連携）
+- Firebase Authentication 風のテーブルUI
+
+### 📄 周知事項（PDF共有）
+- 周知PDFの一覧表示・別タブで閲覧
+- **Firebase Storage 経由で配信**（`/static` 配信は廃止）
+- 管理者のみ：PDFアップロード/削除  
+  - ドラッグ＆ドロップ対応  
+  - PDF限定 / 複数同時アップロード / エラーメッセージ表示
+
+### 📦 出力
+- 勤務実績確認（管理者）画面で **CSV出力**（実績の持ち出しを想定）
+
+### 📱 レスポンシブ対応
+- **スマホ表示対応済み**（主要画面で崩れないよう調整）
+- 画面幅が狭い端末でもテーブルが視認できるように調整
 
 ---
 
-## 🔧 使用技術スタック
+## 🔧 技術スタック
 
 | 分類 | 技術 |
 |------|------|
-| フロントエンド | Vue 3, TypeScript, Vite |
-| UIライブラリ | lucide-vue-next, CSS |
-| バックエンド | Node.js, Express |
-| データベース | Firebase Firestore（サブコレクション構造） |
+| フロントエンド | Vue 3 / TypeScript / Vite |
+| UI | CSS / lucide-vue-next |
+| バックエンド | Node.js / Express |
+| DB | Firebase Firestore |
 | 認証 | Firebase Authentication |
-| ファイルストレージ | Firebase Storage |
-| デプロイ | Vercel（フロント）, Render（バックエンド） |
-| その他 | axios, multer, dayjs, GitHub, Firebase CLI |
+| ファイル | Firebase Storage |
+| デプロイ | Vercel（フロント） / Render（バックエンド） |
+| その他 | axios / multer / dayjs / GitHub / Firebase CLI |
 
 ---
 
@@ -39,61 +87,20 @@
 
 | 権限 | 機能概要 |
 |------|----------|
-| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、PDFの閲覧 |
-| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、PDFアップロードなど全機能 |
+| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、周知PDFの閲覧 |
+| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、周知PDFアップロード/削除、CSV出力 |
 
 ---
 
-## 🧑‍💻 開発者プロフィール（TMT）
+## 🧑‍💻 開発者（TMT）
 
-- 1993年8月22日生まれ（31歳）
-- 大阪府立高津高校卒
-- 慶應義塾大学理工学部 応用化学科 卒業
-- 2018年～現在まで、IT企業にて **システム開発に従事**
-
-現在は、IT企業でエンジニアをやりながら、将来的な**フリーランス独立を視野に入れたポートフォリオ作成、小規模案件への挑戦**に取り組んでいます。  
-**生成AIを活用した効率的な開発**を実践し、早く正確な開発を目指しています。
+- IT企業（株式会社アルファシステムズ）にてシステム開発に従事（2018年〜）
+- フリーランス独立を視野に、実務に近い要件を想定したポートフォリオを継続開発中
+- 生成AIも活用しつつ、品質とスピードの両立を意識して改善を継続
 
 ---
 
-## 🛠 技術スタック（本プロジェクトで使用）
+## 📚 システム説明書 / リポジトリ
+- 本リポジトリ：  
+  https://github.com/TMT-program/attendance-system
 
-- **Vue 3 / TypeScript / Vite**
-- **Node.js / Express / Firebase（Auth・Firestore・Storage）**
-- axios / multer / lucide-vue / dayjs / GitHub / Vercel / Render など
-
----
-
-## 🧳 その他の経験技術（本プロジェクト外）
-
-過去の業務経験で以下のような技術にも触れてきました。
-
-- **Linux**
-- **React**
-- **Oracle Database**
-- **Java**
-- **VBA**
-
----
-
-## 🌐 デモURL（要ログイン）
-
-- フロントエンド：  
-  [https://attendance-system-eight-iota.vercel.app/login](https://attendance-system-eight-iota.vercel.app/login)
-
-※ デモシステムを利用の際は、以下のデモ用ユーザーをご利用ください。
-
-■管理者ユーザー
-USER：TMT_Admin@example.com
-PASS：AdminTest99
-
-■一般ユーザー
-USER：TMT_User@example.com
-PASS：UserTest99
-
----
-
-## 📬 お問い合わせ
-
-- GitHub: [https://github.com/TMT-program](https://github.com/TMT-program)  
-- X(twitter):[https://x.com/tomato19345821](https://x.com/tomato19345821)
