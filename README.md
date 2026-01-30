@@ -49,12 +49,12 @@ PASS：UserTest99
 ### 👥 ユーザー管理（管理者のみ）
 - ユーザー一覧（検索・ページネーション）
 - 管理者権限の ON/OFF 切替
-- ユーザー削除（確認UI・API連携）
-- Firebase Authentication 風のテーブルUI
+- ユーザー削除（API連携）
+- ユーザー追加（API連携）
 
 ### 📄 周知事項（PDF共有）
 - 周知PDFの一覧表示・別タブで閲覧
-- **Firebase Storage 経由で配信**（`/static` 配信は廃止）
+- **Firebase Storage 経由で配信**
 - 管理者のみ：PDFアップロード/削除  
   - ドラッグ＆ドロップ対応  
   - PDF限定 / 複数同時アップロード / エラーメッセージ表示
@@ -63,8 +63,7 @@ PASS：UserTest99
 - 勤務実績確認（管理者）画面で **CSV出力**（実績の持ち出しを想定）
 
 ### 📱 レスポンシブ対応
-- **スマホ表示対応済み**（主要画面で崩れないよう調整）
-- 画面幅が狭い端末でもテーブルが視認できるように調整
+- **スマホ表示対応済み**
 
 ---
 
@@ -94,13 +93,29 @@ PASS：UserTest99
 
 ## 🧑‍💻 開発者（TMT）
 
-- IT企業（株式会社アルファシステムズ）にてシステム開発に従事（2018年〜）
+- IT企業にてシステム開発に従事（2018年〜）
 - フリーランス独立を視野に、実務に近い要件を想定したポートフォリオを継続開発中
-- 生成AIも活用しつつ、品質とスピードの両立を意識して改善を継続
+- 生成AIも活用しつつ、品質とスピードの両立を意識して活動中
 
 ---
 
 ## 📚 システム説明書 / リポジトリ
 - 本リポジトリ：  
   https://github.com/TMT-program/attendance-system
+
+---
+
+  ## 🗺️ システム構成図（デプロイ構成）
+
+```mermaid
+flowchart LR
+  U[ユーザー<br/>PC / スマホ] -->|HTTPS| FE[Vercel<br/>Vue3 + Vite]
+
+  FE -->|REST API(axios)| BE[Render<br/>Node.js + Express]
+
+  FE -->|認証| AUTH[Firebase Authentication]
+  BE -->|勤怠/勤務報告データ| DB[Firebase Firestore]
+  BE -->|周知PDFのアップ/削除| ST[Firebase Storage]
+  FE -->|周知PDFの閲覧| ST
+
 
