@@ -140,7 +140,7 @@ const handleDrop = (event: DragEvent) => {
 
 const uploadFiles = async () => {
   if (IS_DEMO) {
-    alert('デモ用システムのためアップロードはできません')
+    alert('デモ用システムのためアップロード機能は停止しています')
     return
   }
 
