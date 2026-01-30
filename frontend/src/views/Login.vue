@@ -225,29 +225,41 @@ async function handleRegister() {
 }
 
 .login-wrapper {
-  /* ✅ どの端末でも下まで見れるように「内部スクロール」を許可 */
+  /* ✅ iOS Safariの高さズレ対策：min-heightで保険 */
+  min-height: 100vh;
   height: 100dvh;
   width: 100%;
-  padding: 16px;
+
+  /* ✅ セーフエリアを考慮して上を少し余分に確保 */
+  padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+
   background-color: #f8fafc;
 
   display: flex;
-  align-items: center;
   justify-content: center;
 
-  overflow-y: auto;   /* ✅ 縦スクロールOK */
-  overflow-x: hidden; /* ✅ 横は出さない */
-  -webkit-overflow-scrolling: touch; /* iOS対策 */
+  /* ✅ 見切れ防止：基本は中央寄せでも、上が詰まりやすい端末で上寄せに */
+  align-items: center;
 
-  /* ✅ ここを追加：スクロールは維持してバーだけ非表示 */
-  -ms-overflow-style: none; /* IE/旧Edge */
-  scrollbar-width: none;    /* Firefox */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* ✅ ここを追加：Chrome/Safari */
 .login-wrapper::-webkit-scrollbar {
   display: none;
 }
+
+/* ✅ 高さが厳しい端末（iPhone含む）では上寄せにして見切れを確実に防ぐ */
+@media (max-height: 820px) {
+  .login-wrapper {
+    align-items: flex-start;
+  }
+}
+
 
 
 .login-card {
