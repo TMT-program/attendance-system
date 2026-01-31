@@ -1,7 +1,9 @@
 <template>
   <div class="menu-container">
     <h1 class="title">メニュー</h1>
+
     <LoadingSpinner v-if="isLoading" />
+
     <div class="menu-grid" v-else>
       <button v-if="isAdmin" class="menu-card" @click="goToUserManagement">
         <User class="icon" />
@@ -17,6 +19,12 @@
         <Megaphone class="icon" />
         <span class="label">周知事項</span>
       </button>
+
+      <!-- ✅ 追加：AIチャット -->
+      <button class="menu-card" @click="goToAIChat">
+        <Bot class="icon" />
+        <span class="label">AIチャット</span>
+      </button>
     </div>
   </div>
 </template>
@@ -24,7 +32,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, ClipboardEdit, Megaphone } from 'lucide-vue-next'
+import { User, ClipboardEdit, Megaphone, MessageCircle, Bot, Cpu } from 'lucide-vue-next'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
@@ -116,6 +124,11 @@ const goToAttendanceReport = () => {
 const goAnnouncements = () => {
   router.push({ name: 'Announcements' })
 }
+
+/** ✅ 追加：AIチャット画面へ */
+const goToAIChat = () => {
+  router.push({ name: 'AIChat' })
+}
 </script>
 
 <style scoped>
@@ -134,6 +147,7 @@ const goAnnouncements = () => {
   font-weight: bold;
 }
 
+/* ✅ まずはスマホ/タブレット：今まで通り（中央寄せ・折り返しOK） */
 .menu-grid {
   display: flex;
   flex-wrap: wrap;
@@ -141,12 +155,24 @@ const goAnnouncements = () => {
   gap: 2rem;
 }
 
+/* ✅ PC：1行3つまで、4つ目は次段で左寄せ */
 @media (min-width: 900px) {
+  .menu-container {
+    text-align: left; /* タイトルや全体の基準を左寄せに寄せる（カードが左寄せでも自然） */
+  }
+
+  .title {
+    text-align: center; /* タイトルは今まで通り中央が良ければ残す（不要なら削除OK） */
+  }
+
   .menu-grid {
-    flex-direction: row;
-    flex-wrap: nowrap;     /* ← 折り返し禁止 */
-    justify-content: center;
+    flex-wrap: wrap;              /* ✅ 折り返しOKにする */
+    justify-content: flex-start;  /* ✅ 左寄せ */
     gap: 2rem;
+  }
+
+  .menu-container {
+    max-width: 980px; /* 900だと中身が足りないので少し広げる */
   }
 }
 

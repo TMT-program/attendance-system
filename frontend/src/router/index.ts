@@ -9,6 +9,7 @@ import UserMenu from '../views/UserMenu.vue'
 import UserList from '../views/UserList.vue'
 import UserAdd from '../views/UserAdd.vue'
 import UserDelete from '../views/UserDelete.vue'
+import AIChat from '../views/AIChat.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -66,6 +67,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/UserDelete',
     name: 'UserDelete',
     component: UserDelete,
+    meta: { requiresAuth: true }, // 🔐 認証が必要
+  },
+  {
+    path: '/AIChat',
+    name: 'AIChat',
+    component: AIChat,
     meta: { requiresAuth: true }, // 🔐 認証が必要
   }
 ]
