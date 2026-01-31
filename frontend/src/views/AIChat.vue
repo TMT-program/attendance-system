@@ -156,9 +156,12 @@ async function sendMessage() {
   // ✅ 本物：バックエンド連携
   isSending.value = true
   try {
-    const { data } = await axios.post<AIChatResponse>('/api/ai/chat?debug=1', {
-      message: text,
-    })
+    const API_BASE = import.meta.env.VITE_API_BASE_URL
+
+    const { data } = await axios.post<AIChatResponse>(
+    `${API_BASE}/api/ai/chat?debug=1`,
+    { message: text }
+    )
 
     messages.value.push({
       id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),
