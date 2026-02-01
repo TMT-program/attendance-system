@@ -60,7 +60,7 @@
           v-model="input"
           class="chat-input"
           placeholder="メッセージを入力（Enterで送信 / Shift+Enterで改行）"
-          :disabled="isSending || isLimitReached"
+          :disabled="isSending || isChatLimitReached"
           rows="2"
           @keydown.enter.exact.prevent="handleEnterSend"
           @keydown.enter.shift.exact.stop
@@ -77,24 +77,25 @@
         </button>
       </div>
 
-      <!-- ✅ 追加：ステータス/警告表示 -->
+      <!-- ✅ ステータス表示（残り回数 / 文字数） -->
       <div class="status-area">
         <div class="status-left">
-          <span class="status-item">
+          <span
+            class="status-item"
+            :class="remainingChats <= 3 ? 'is-warn' : ''"
+          >
             残り回数：<b>{{ remainingChats }}</b> / {{ MAX_CHATS }}
           </span>
         </div>
 
         <div class="status-right">
-          <span
-            class="status-item"
-            :class="isCharLimitReached ? 'is-danger' : ''"
-          >
+          <span class="status-item" :class="isCharLimitReached ? 'is-danger' : ''">
             {{ inputLength }} / {{ MAX_CHARS }}文字
           </span>
         </div>
       </div>
 
+      <!-- ✅ 赤文字の通知 -->
       <div v-if="errorMessage" class="error-text">
         {{ errorMessage }}
       </div>
@@ -110,8 +111,8 @@
 import { ref, nextTick, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { MessageCircle, Send, ArrowLeft } from 'lucide-vue-next'
-// ✅ ログイン単位で回数リセットしたいので auth を使う
+import { MessageCircle, Send } from 'lucide-vue-next'
+
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -124,8 +125,12 @@ type ChatMessage = {
   time: string
 }
 
+/**
+ * ✅ サーバが返す型（previous_response_id連携のため responseId を受け取る）
+ */
 type AIChatResponse = {
   text: string
+  responseId: string
 }
 
 const router = useRouter()
@@ -137,11 +142,32 @@ const MAX_CHARS = 300
 const MAX_CHATS = 10
 
 /** =========================
- * 状態
+ * sessionStorage keys
+ * ========================= */
+const CHAT_COUNT_KEY = 'ai_chat_send_count_v1'
+const PREV_RESPONSE_ID_KEY = 'ai_prev_response_id_v1'
+
+/** =========================
+ * state
  * ========================= */
 const input = ref('')
 const isSending = ref(false)
 const chatScrollRef = ref<HTMLDivElement | null>(null)
+
+/**
+ * ✅ 送信回数（1ログイン=10回）
+ * - リロード/画面遷移でも維持したいので sessionStorage に保存
+ */
+const sendCount = ref(0)
+
+/**
+ * ✅ previous_response_id 用
+ * - サーバから返ってきた responseId を保存し、次回 previousResponseId として送る
+ */
+const prevResponseId = ref('')
+
+/** ✅ エラー表示（赤文字） */
+const errorMessage = ref('')
 
 const messages = ref<ChatMessage[]>([
   {
@@ -152,15 +178,6 @@ const messages = ref<ChatMessage[]>([
   },
 ])
 
-/** ✅ 送信回数（1ログイン=10回） */
-const sendCount = ref(0)
-
-/** ✅ エラーメッセージ（赤文字表示） */
-const errorMessage = ref('')
-
-/** ✅ sessionStorageキー（ログイン中は保持、ログアウトでクリア） */
-const CHAT_COUNT_KEY = 'ai_chat_send_count_v1'
-
 /** =========================
  * computed
  * ========================= */
@@ -168,27 +185,32 @@ const inputLength = computed(() => input.value.length)
 const isCharLimitReached = computed(() => inputLength.value >= MAX_CHARS)
 
 const remainingChats = computed(() => Math.max(0, MAX_CHATS - sendCount.value))
-const isLimitReached = computed(() => remainingChats.value <= 0)
+const isChatLimitReached = computed(() => remainingChats.value <= 0)
 
-/** 送信可能条件 */
 const canSend = computed(() => {
   const text = input.value.trim()
   if (!text) return false
-  if (isLimitReached.value) return false
   if (isSending.value) return false
+  if (isChatLimitReached.value) return false
   return true
 })
 
 /** =========================
- * utility
+ * utils
  * ========================= */
 function getTimeString() {
   const d = new Date()
   return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 }
 
-function goBack() {
-  router.push({ name: 'Menu' })
+function setError(msg: string) {
+  errorMessage.value = msg
+}
+
+function clearErrorIfContains(fragment: string) {
+  if (errorMessage.value.includes(fragment)) {
+    errorMessage.value = ''
+  }
 }
 
 async function scrollToBottom() {
@@ -199,59 +221,61 @@ async function scrollToBottom() {
 }
 
 /** =========================
- * 入力制限（300文字超えさせない）
- * - 直接入力でも貼り付けでも必ずカット
- * ========================= */
-function onInput() {
-  if (input.value.length > MAX_CHARS) {
-    input.value = input.value.slice(0, MAX_CHARS)
-  }
-
-  // 文字数エラー表示（上限到達時に赤で案内）
-  if (input.value.length >= MAX_CHARS) {
-    errorMessage.value = `入力できる文字数は${MAX_CHARS}文字までです。`
-  } else {
-    // 文字数関連のエラーだけ消す（回数制限のエラーは残したい）
-    if (errorMessage.value.includes(`入力できる文字数は${MAX_CHARS}文字まで`)) {
-      errorMessage.value = ''
-    }
-  }
-}
-
-function handleEnterSend() {
-  // Enter単体は送信（Shift+Enterは改行）
-  sendMessage()
-}
-
-/** =========================
- * 送信回数の永続化（ログイン中だけ）
+ * session persistence
  * ========================= */
 function loadSendCountFromSession() {
   const raw = sessionStorage.getItem(CHAT_COUNT_KEY)
   const n = Number(raw)
-  if (Number.isFinite(n) && n >= 0) {
-    sendCount.value = n
-  } else {
-    sendCount.value = 0
-  }
+  sendCount.value = Number.isFinite(n) && n >= 0 ? n : 0
 }
 
 function saveSendCountToSession() {
   sessionStorage.setItem(CHAT_COUNT_KEY, String(sendCount.value))
 }
 
-function resetSendCountSession() {
+function loadPrevResponseIdFromSession() {
+  prevResponseId.value = sessionStorage.getItem(PREV_RESPONSE_ID_KEY) ?? ''
+}
+
+function savePrevResponseIdToSession() {
+  sessionStorage.setItem(PREV_RESPONSE_ID_KEY, prevResponseId.value)
+}
+
+function resetSessionState() {
   sessionStorage.removeItem(CHAT_COUNT_KEY)
+  sessionStorage.removeItem(PREV_RESPONSE_ID_KEY)
   sendCount.value = 0
+  prevResponseId.value = ''
+  input.value = ''
+  errorMessage.value = ''
 }
 
 /** =========================
- * 送信処理
+ * input handler（300文字上限）
+ * ========================= */
+function onInput() {
+  if (input.value.length > MAX_CHARS) {
+    input.value = input.value.slice(0, MAX_CHARS)
+  }
+
+  if (input.value.length >= MAX_CHARS) {
+    setError(`入力できる文字数は${MAX_CHARS}文字までです。`)
+  } else {
+    clearErrorIfContains(`入力できる文字数は${MAX_CHARS}文字まで`)
+  }
+}
+
+function handleEnterSend() {
+  sendMessage()
+}
+
+/** =========================
+ * send
  * ========================= */
 async function sendMessage() {
   // 回数制限
-  if (isLimitReached.value) {
-    errorMessage.value = `チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。`
+  if (isChatLimitReached.value) {
+    setError(`チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。再ログインで回数がリセットされます。`)
     return
   }
 
@@ -269,32 +293,36 @@ async function sendMessage() {
     time: getTimeString(),
   })
 
-  // ✅ 送信回数を加算（「送る」操作を10回まで、という要件なのでここでカウント）
+  // ✅ 送信回数を加算（「送信操作」を10回まで）
   sendCount.value += 1
   saveSendCountToSession()
 
   input.value = ''
   await scrollToBottom()
 
-  // 回数上限に到達したら案内（赤文字）
-  if (isLimitReached.value) {
-    errorMessage.value = `チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。`
+  // 残り回数が0になったら案内を出す
+  if (isChatLimitReached.value) {
+    setError(`チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。再ログインで回数がリセットされます。`)
   } else {
-    // 回数系のエラーが出てたら消す（ただし文字数系は別処理）
-    if (errorMessage.value.includes(`チャットの利用回数は1回のログインにつき${MAX_CHATS}回まで`)) {
-      errorMessage.value = ''
-    }
+    clearErrorIfContains(`チャットの利用回数は1回のログインにつき${MAX_CHATS}回まで`)
   }
 
-  // ✅ 本物：バックエンド連携
   isSending.value = true
   try {
     const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').toString().replace(/\/$/, '')
     if (!API_BASE) throw new Error('VITE_API_BASE_URL is not set')
 
+    // ✅ previousResponseId を一緒に送る（空なら送らない）
+    const payload: any = {
+      message: trimmed,
+    }
+    if (prevResponseId.value) {
+      payload.previousResponseId = prevResponseId.value
+    }
+
     const { data } = await axios.post<AIChatResponse>(
       `${API_BASE}/api/ai/chat`,
-      { message: trimmed }
+      payload
     )
 
     messages.value.push({
@@ -303,6 +331,17 @@ async function sendMessage() {
       text: (data?.text ?? '').toString(),
       time: getTimeString(),
     })
+
+    // ✅ 次回用に responseId を保存（会話継続のキー）
+    const nextId = (data?.responseId ?? '').toString().trim()
+    if (nextId) {
+      prevResponseId.value = nextId
+      savePrevResponseIdToSession()
+    } else {
+      // responseId が取れない場合は継続できないので切っておく
+      prevResponseId.value = ''
+      sessionStorage.removeItem(PREV_RESPONSE_ID_KEY)
+    }
   } catch (err: any) {
     console.error('[AIChat] request failed:', err)
 
@@ -324,28 +363,26 @@ async function sendMessage() {
 }
 
 /** =========================
- * mounted / auth
+ * lifecycle
  * ========================= */
 onMounted(() => {
   scrollToBottom()
 
-  // ✅ ログイン中は回数を保持、ログアウト/ログインし直しでリセット
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
+  // ✅ ログイン中は sessionStorage を復元し、
+  // ✅ ログアウトで回数＆会話IDをリセット（= ログインし直したら再度10回使える）
+  onAuthStateChanged(auth, (u) => {
+    if (u) {
       loadSendCountFromSession()
+      loadPrevResponseIdFromSession()
     } else {
-      // ログアウトしたらリセット
-      resetSendCountSession()
-      errorMessage.value = ''
-      input.value = ''
+      resetSessionState()
     }
   })
 })
 
-/** sessionStorageを使うので安全のために監視 */
-watch(sendCount, () => {
-  saveSendCountToSession()
-})
+// 念のための自動保存
+watch(sendCount, () => saveSendCountToSession())
+watch(prevResponseId, () => savePrevResponseIdToSession())
 </script>
 
 <style scoped>
@@ -385,35 +422,6 @@ watch(sendCount, () => {
   margin: 0;
   line-height: 1.1;
   white-space: nowrap;
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-.back-btn:hover {
-  background: #f8fafc;
-  transform: translateY(-1px);
-}
-
-.back-icon {
-  width: 1.2rem;
-  height: 1.2rem;
-}
-
-.back-label {
-  font-weight: 700;
-  font-size: 0.95rem;
 }
 
 /* ヒントカード */
@@ -575,36 +583,6 @@ watch(sendCount, () => {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
-/* ✅ 追加：ステータス表示（文字数/残り回数） */
-.status-area {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.9rem;
-  border-top: 1px solid #e2e8f0;
-  background: #ffffff;
-}
-
-.status-item {
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.status-item.is-danger {
-  color: #dc2626; /* 赤 */
-  font-weight: 900;
-}
-
-/* ✅ 追加：赤文字のエラー */
-.error-text {
-  padding: 0.1rem 0.9rem 0.75rem;
-  background: #ffffff;
-  color: #dc2626;
-  font-weight: 900;
-  font-size: 0.9rem;
-}
-
 .send-btn {
   display: inline-flex;
   align-items: center;
@@ -644,6 +622,41 @@ watch(sendCount, () => {
   letter-spacing: 0.02em;
 }
 
+/* ✅ ステータス（文字数/残り回数） */
+.status-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.status-item {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.status-item.is-warn {
+  color: #b45309; /* 残り少ない時は注意色 */
+  font-weight: 900;
+}
+
+.status-item.is-danger {
+  color: #dc2626; /* 文字数上限は赤 */
+  font-weight: 900;
+}
+
+/* ✅ エラー（赤文字） */
+.error-text {
+  padding: 0.1rem 0.9rem 0.75rem;
+  background: #ffffff;
+  color: #dc2626;
+  font-weight: 900;
+  font-size: 0.9rem;
+}
+
 /* フッター注意 */
 .footer-note {
   padding: 0.6rem 0.9rem;
@@ -676,10 +689,6 @@ watch(sendCount, () => {
 
   .send-btn {
     width: 100%;
-  }
-
-  .back-label {
-    display: none; /* スマホは文字省略して横崩れ防止 */
   }
 
   .status-area {
