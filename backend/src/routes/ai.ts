@@ -18,11 +18,15 @@ const SYSTEM_PROMPT = `
 
 type ChatRequestBody = {
   message?: string
+  // ✅ 追加：会話継続用（フロントが保持して次回送る）
+  previousResponseId?: string
   context?: Record<string, unknown>
 }
 
 type ChatResponseBody = {
   text: string
+  // ✅ 追加：今回のレスポンスID（次回のpreviousResponseIdに使う）
+  responseId: string
   // debug=1 のときだけ付ける
   debug?: {
     status: any
@@ -121,6 +125,7 @@ router.post('/chat', async (req, res) => {
 
     const body = req.body as ChatRequestBody
     const message = (body.message ?? '').trim()
+    const previousResponseId = (body.previousResponseId ?? '').trim()
 
     if (!message) {
       return res.status(400).json({ error: 'message is required' })
@@ -134,28 +139,69 @@ router.post('/chat', async (req, res) => {
 
     const debugMode = String(req.query.debug ?? '') === '1'
 
-    // ✅ ここが重要：Responses API を “安定形” に寄せる
-    const response = await client.responses.create({
-      model: 'gpt-5-mini',
+    /**
+     * ✅ 重要：
+     * - previous_response_id で会話継続したい場合、
+     *   instructions が常に引き継がれるとは限らない（継続時に効かないケースがある）
+     * - そこで、初回だけ system を input に入れて会話に「刻む」
+     * - 継続時は追加分だけ送る（履歴全部は送らない）
+     */
+    const firstTurn = !previousResponseId
+    const input = firstTurn
+      ? ([
+          { role: 'system' as const, content: SYSTEM_PROMPT },
+          { role: 'user' as const, content: message },
+        ] as const)
+      : message
 
-      // systemは input配列に混ぜず、instructions を使う
-      instructions: SYSTEM_PROMPT,
+    // ✅ previous_response_id が壊れている時のために「再試行」も入れておく
+    const createOnce = async (usePrev: boolean) => {
+      const args: any = {
+        model: 'gpt-5-mini',
 
-      // userメッセージは input に素直に入れる
-      input: message,
+        // 初回：system+user / 継続：userだけ（文字列）
+        input,
 
-      // 推論を軽くして “空っぽ” を避ける
-      reasoning: { effort: 'minimal' },
+        // ✅ 会話継続（必要なら付与）
+        ...(usePrev && previousResponseId
+          ? { previous_response_id: previousResponseId }
+          : {}),
 
-      // テキスト出力を明示
-      text: { format: { type: 'text' } },
+        // ✅ 会話継続用途なので明示
+        store: true,
 
-      // いったん余裕を持たせる（400だと空/途中切れの両方が起きやすい）
-      max_output_tokens: 1000,
-    })
+        // 推論を軽くして “空っぽ” を避ける
+        reasoning: { effort: 'minimal' },
+
+        // テキスト出力を明示
+        text: { format: { type: 'text' } },
+
+        // いったん余裕を持たせる
+        max_output_tokens: 1000,
+      }
+
+      return await client.responses.create(args)
+    }
+
+    let response: any
+    try {
+      response = await createOnce(true)
+    } catch (e: any) {
+      // previous_response_id が無効/期限切れ等なら、新規会話としてやり直す
+      const status = e?.status
+      if (previousResponseId && (status === 400 || status === 404)) {
+        console.warn('[AI WARN] previous_response_id invalid. retry without it.', {
+          status,
+        })
+        response = await createOnce(false)
+      } else {
+        throw e
+      }
+    }
 
     // ✅ 空っぽ切り分け用ログ（debugModeに関係なく軽量なものは出す）
     console.log('[AI META]', {
+      id: (response as any)?.id ?? null,
       status: response?.status,
       output_len: Array.isArray((response as any)?.output)
         ? (response as any).output.length
@@ -164,6 +210,8 @@ router.post('/chat', async (req, res) => {
       incomplete_details: (response as any)?.incomplete_details ?? null,
       has_error: !!(response as any)?.error,
       usage: (response as any)?.usage ?? null,
+      used_previous_response_id: !!previousResponseId,
+      first_turn: firstTurn,
     })
 
     if (debugMode) {
@@ -177,6 +225,7 @@ router.post('/chat', async (req, res) => {
       text:
         extractedText ||
         '（回答を生成できませんでした。もう一度別の聞き方で試してください。）',
+      responseId: (response?.id ?? '').toString(),
     }
 
     if (debugMode) {
