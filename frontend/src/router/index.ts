@@ -10,6 +10,8 @@ import UserList from '../views/UserList.vue'
 import UserAdd from '../views/UserAdd.vue'
 import UserDelete from '../views/UserDelete.vue'
 import AIChat from '../views/AIChat.vue'
+import KnowledgeChat from '../views/KnowledgeChat.vue'
+import KnowledgeAdmin from '../views/KnowledgeAdmin.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -74,7 +76,19 @@ const routes: Array<RouteRecordRaw> = [
     name: 'AIChat',
     component: AIChat,
     meta: { requiresAuth: true }, // 🔐 認証が必要
-  }
+  },
+  {
+    path: '/KnowledgeChat',
+    name: 'KnowledgeChat',
+    component: KnowledgeChat,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/KnowledgeAdmin',
+    name: 'KnowledgeAdmin',
+    component: KnowledgeAdmin,
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

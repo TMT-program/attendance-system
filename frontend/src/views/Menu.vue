@@ -25,6 +25,18 @@
         <Bot class="icon" />
         <span class="label">AIチャット</span>
       </button>
+
+      <!-- ✅ 追加：社内ナレッジ回答 -->
+      <button class="menu-card" @click="goToKnowledgeChat">
+        <BookOpen class="icon" />
+        <span class="label">社内ナレッジ回答</span>
+      </button>
+
+      <!-- ✅ 追加：ナレッジ管理（管理者のみ） -->
+      <button v-if="isAdmin" class="menu-card" @click="goToKnowledgeAdmin">
+        <Database class="icon" />
+        <span class="label">ナレッジ管理</span>
+      </button>
     </div>
   </div>
 </template>
@@ -32,7 +44,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, ClipboardEdit, Megaphone, MessageCircle, Bot, Cpu } from 'lucide-vue-next'
+import { User, ClipboardEdit, Megaphone, MessageCircle, Bot, Cpu, BookOpen, Database } from 'lucide-vue-next'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
@@ -128,6 +140,14 @@ const goAnnouncements = () => {
 /** ✅ 追加：AIチャット画面へ */
 const goToAIChat = () => {
   router.push({ name: 'AIChat' })
+}
+
+const goToKnowledgeChat = () => {
+  router.push({ name: 'KnowledgeChat' })
+}
+
+const goToKnowledgeAdmin = () => {
+  router.push({ name: 'KnowledgeAdmin' })
 }
 </script>
 

@@ -4,6 +4,7 @@ import usersRouter from './routes/users'
 import attendanceRouter from './routes/attendance'
 import aiRouter from './routes/ai'
 import infoRouter from './routes/info'
+import knowledgeRouter from './routes/knowledge'
 import cors from 'cors'
 
 const app = express()
@@ -21,6 +22,7 @@ app.use('/api/users', usersRouter)
 app.use('/api/attendance', attendanceRouter)
 app.use('/api/info', infoRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/knowledge', knowledgeRouter)
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
