@@ -2,3 +2,5 @@ backend/src/serviceAccountKey.json
 backend/src/encoded.txt
 backend/src/firebase-service-account.json
 backend/src/serviceAccountKey_old.json
+backend/.env
+frontend/.env
