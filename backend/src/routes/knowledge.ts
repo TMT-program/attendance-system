@@ -157,11 +157,8 @@ router.delete('/:docId', async (req, res) => {
     console.log('[DELETE] docId:', docId, 'chunkCount:', chunkCount, 'ids:', ids)
 
     const index = getPineconeIndex()
-    try {
-      await index.deleteMany(ids)
-    } catch (pineconeErr: any) {
-      console.error('[DELETE PINECONE ERROR]', JSON.stringify(pineconeErr), pineconeErr.message)
-      throw pineconeErr
+    for (const id of ids) {
+      await index.deleteOne(id)
     }
     await db.collection('knowledge_docs').doc(docId).delete()
 
