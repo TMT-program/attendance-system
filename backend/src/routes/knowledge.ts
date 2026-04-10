@@ -154,9 +154,15 @@ router.delete('/:docId', async (req, res) => {
 
     const { chunkCount } = docSnap.data() as { chunkCount: number }
     const ids = Array.from({ length: chunkCount }, (_, i) => `${docId}_chunk_${i}`)
+    console.log('[DELETE] docId:', docId, 'chunkCount:', chunkCount, 'ids:', ids)
 
     const index = getPineconeIndex()
-    await index.deleteMany(ids)
+    try {
+      await index.deleteMany(ids)
+    } catch (pineconeErr: any) {
+      console.error('[DELETE PINECONE ERROR]', JSON.stringify(pineconeErr), pineconeErr.message)
+      throw pineconeErr
+    }
     await db.collection('knowledge_docs').doc(docId).delete()
 
     return res.json({ success: true })
