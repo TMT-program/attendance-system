@@ -158,7 +158,7 @@ router.delete('/:docId', async (req, res) => {
 
     const index = getPineconeIndex()
     for (const id of ids) {
-      await index.deleteOne(id)
+      await index.deleteOne({ id })
     }
     await db.collection('knowledge_docs').doc(docId).delete()
 
