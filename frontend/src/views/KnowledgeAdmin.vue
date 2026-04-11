@@ -583,6 +583,7 @@ onMounted(() => {
   color: #0f172a;
   line-height: 1.7;
   margin: 0;
+  text-align: left;
 }
 
 @media (max-width: 600px) {
