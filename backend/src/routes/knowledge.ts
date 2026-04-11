@@ -144,6 +144,32 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 })
 
+// ── ナレッジ内容取得 ──────────────────────────────────────────────────────────
+router.get('/:docId/content', async (req, res) => {
+  try {
+    const { docId } = req.params
+    const db = admin.firestore()
+    const docSnap = await db.collection('knowledge_docs').doc(docId).get()
+    if (!docSnap.exists) return res.status(404).json({ error: 'ドキュメントが見つかりません' })
+
+    const { chunkCount, title } = docSnap.data() as { chunkCount: number; title: string }
+    const ids = Array.from({ length: chunkCount }, (_, i) => `${docId}_chunk_${i}`)
+
+    const index = getPineconeIndex()
+    const fetchResult = await index.fetch({ ids })
+    const records = fetchResult.records ?? {}
+
+    const chunks = ids
+      .map((id) => (records[id]?.metadata?.text as string) ?? '')
+      .filter(Boolean)
+
+    return res.json({ title, content: chunks.join('\n\n') })
+  } catch (err: any) {
+    console.error('[KNOWLEDGE CONTENT ERROR]', err)
+    return res.status(500).json({ error: err.message ?? 'Failed to fetch content' })
+  }
+})
+
 // ── ナレッジ削除 ──────────────────────────────────────────────────────────────
 router.delete('/:docId', async (req, res) => {
   try {

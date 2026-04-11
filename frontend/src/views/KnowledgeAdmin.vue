@@ -92,7 +92,13 @@
             <td>{{ doc.originalname }}</td>
             <td>{{ doc.chunkCount }}</td>
             <td>{{ formatDate(doc.uploadedAt) }}</td>
-            <td>
+            <td class="action-cell">
+              <button
+                class="view-btn"
+                @click="viewDoc(doc.docId)"
+              >
+                閲覧
+              </button>
               <button
                 class="delete-btn"
                 :disabled="deletingDocId === doc.docId"
@@ -104,6 +110,20 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- 閲覧モーダル -->
+  <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ modalTitle }}</h3>
+        <button class="modal-close" @click="closeModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="isLoadingContent" class="loading-text">読み込み中…</div>
+        <pre v-else class="modal-content">{{ modalContent }}</pre>
+      </div>
     </div>
   </div>
 </template>
@@ -134,6 +154,11 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const knowledgeDocs = ref<KnowledgeDoc[]>([])
 const isLoadingList = ref(false)
 const deletingDocId = ref('')
+
+const isModalOpen = ref(false)
+const isLoadingContent = ref(false)
+const modalTitle = ref('')
+const modalContent = ref('')
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -207,6 +232,26 @@ async function deleteDoc(docId: string) {
   } finally {
     deletingDocId.value = ''
   }
+}
+
+async function viewDoc(docId: string) {
+  isModalOpen.value = true
+  isLoadingContent.value = true
+  modalTitle.value = ''
+  modalContent.value = ''
+  try {
+    const { data } = await axios.get(`${API_BASE}/api/knowledge/${docId}/content`)
+    modalTitle.value = data.title
+    modalContent.value = data.content
+  } catch (err: any) {
+    modalContent.value = '内容の取得に失敗しました'
+  } finally {
+    isLoadingContent.value = false
+  }
+}
+
+function closeModal() {
+  isModalOpen.value = false
 }
 
 function formatDate(uploadedAt: { _seconds: number } | null): string {
@@ -448,6 +493,96 @@ onMounted(() => {
 .delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.view-btn {
+  padding: 0.35rem 0.8rem;
+  background: #fff;
+  color: #1e3a8a;
+  border: 1.5px solid #1e3a8a;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.view-btn:hover {
+  background: #eff6ff;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.modal-body {
+  padding: 1.2rem;
+  overflow-y: auto;
+}
+
+.modal-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.92rem;
+  color: #0f172a;
+  line-height: 1.7;
+  margin: 0;
 }
 
 @media (max-width: 600px) {
