@@ -1,7 +1,7 @@
 # 📅 勤怠管理システム（Attendance Management System）
 
 Vue + Node.js + Firebase を用いて構築した、**勤怠・勤務報告管理ツール（ポートフォリオ）**です。  
-出勤/退勤打刻、勤務報告の提出・承認、ユーザー管理、周知事項PDFの共有に加え、**AIチャット（ChatGPT API連携）**も実装しています。  
+出勤/退勤打刻、勤務報告の提出・承認、ユーザー管理、周知事項PDFの共有に加え、**AIチャット（ChatGPT API連携）**および **RAGベースの社内ナレッジ自律回答機能（Gemini API + Pinecone連携）** も実装しています。  
 実務を想定した要件で、設計〜実装〜デプロイまで一人で対応しています。
 
 ---
@@ -66,6 +66,14 @@ PASS：UserTest99
   - ドラッグ＆ドロップ対応  
   - PDF限定 / 複数同時アップロード / エラーメッセージ表示
 
+### 🧠 社内ナレッジ自律回答（RAG）
+- 社内ドキュメント（.txt / .md）をアップロードしてナレッジを登録
+- **Gemini Embedding API**（gemini-embedding-001）でテキストをベクトル化し **Pinecone**（ベクトルDB）に保存
+- ユーザーの質問をベクトル化 → Pineconeで類似検索（上位5件取得）→ **Gemini**（gemini-2.5-flash-lite）で回答生成
+- 登録されたナレッジの内容のみ回答対象とし、社外情報との混在を防止
+- **管理者機能**：ナレッジの登録・内容閲覧・削除
+- **コスト考慮**：Pinecone無料プランのストレージ制約に合わせ768次元に最適化（有料プラン移行でフル精度の3072次元に対応可能な設計）
+
 ### 🤖 AIチャット（ChatGPT API連携）
 - 勤怠管理システムの使い方や入力ルール等を **チャット形式で質問**できる
 - バックエンド（Express）経由で OpenAI API（Responses API）へ問い合わせ
@@ -95,7 +103,9 @@ PASS：UserTest99
 | DB | Firebase Firestore |
 | 認証 | Firebase Authentication |
 | ファイル | Firebase Storage |
-| AI | OpenAI API（Responses API） |
+| AI（チャット） | OpenAI API（Responses API） |
+| AI（RAG） | Gemini Embedding API / Gemini 2.5 Flash Lite |
+| ベクトルDB | Pinecone |
 | デプロイ | Vercel（フロント） / Render（バックエンド） |
 | その他 | axios / multer / dayjs / GitHub / Firebase CLI |
 
@@ -105,8 +115,8 @@ PASS：UserTest99
 
 | 権限 | 機能概要 |
 |------|----------|
-| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、周知PDFの閲覧、AIチャット |
-| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、周知PDFアップロード/削除、CSV出力、AIチャット |
+| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、周知PDFの閲覧、AIチャット、社内ナレッジ回答 |
+| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、周知PDFアップロード/削除、CSV出力、AIチャット、社内ナレッジ回答、ナレッジ管理（登録・閲覧・削除） |
 
 ---
 
