@@ -18,8 +18,8 @@
     <div class="upload-card">
       <h2 class="section-title">ナレッジ登録</h2>
 
-      <div class="form-row">
-        <label class="form-label">タイトル（任意）</label>
+      <div v-if="selectedFiles.length <= 1" class="form-row">
+        <label class="form-label">タイトル（任意・1ファイル選択時のみ）</label>
         <input
           v-model="uploadTitle"
           type="text"
@@ -30,7 +30,7 @@
       </div>
 
       <div class="form-row">
-        <label class="form-label">ファイル（.txt / .md）</label>
+        <label class="form-label">ファイル（.txt / .md・複数選択可）</label>
         <div
           class="drop-zone"
           :class="{ 'is-over': isDragOver, 'is-disabled': isUploading }"
@@ -40,13 +40,18 @@
           @click="fileInputRef?.click()"
         >
           <Upload class="drop-icon" />
-          <span v-if="selectedFile" class="drop-filename">{{ selectedFile.name }}</span>
-          <span v-else class="drop-hint">クリックまたはドラッグ＆ドロップ</span>
+          <template v-if="selectedFiles.length > 0">
+            <ul class="file-list">
+              <li v-for="f in selectedFiles" :key="f.name" class="file-list-item">{{ f.name }}</li>
+            </ul>
+          </template>
+          <span v-else class="drop-hint">クリックまたはドラッグ＆ドロップ（複数可）</span>
         </div>
         <input
           ref="fileInputRef"
           type="file"
           accept=".txt,.md,text/plain,text/markdown"
+          multiple
           class="hidden-input"
           @change="onFileChange"
         />
@@ -56,11 +61,11 @@
 
       <button
         class="upload-btn"
-        :disabled="!selectedFile || isUploading"
+        :disabled="selectedFiles.length === 0 || isUploading"
         @click="uploadFile"
       >
-        <span v-if="isUploading">登録中…</span>
-        <span v-else>登録する</span>
+        <span v-if="isUploading">登録中… ({{ uploadProgress }}/{{ selectedFiles.length }})</span>
+        <span v-else>登録する{{ selectedFiles.length > 1 ? `（${selectedFiles.length}件）` : '' }}</span>
       </button>
 
       <div v-if="uploadSuccess" class="upload-success">{{ uploadSuccess }}</div>
@@ -141,10 +146,11 @@ type KnowledgeDoc = {
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').toString().replace(/\/$/, '')
 
 const uploadTitle = ref('')
-const selectedFile = ref<File | null>(null)
+const selectedFiles = ref<File[]>([])
 const isUploading = ref(false)
 const uploadError = ref('')
 const uploadSuccess = ref('')
+const uploadProgress = ref(0)
 const isDragOver = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
@@ -157,53 +163,77 @@ const isLoadingContent = ref(false)
 const modalTitle = ref('')
 const modalContent = ref('')
 
+function isValidFile(file: File): boolean {
+  return file.name.endsWith('.txt') || file.name.endsWith('.md')
+}
+
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
-  selectedFile.value = target.files?.[0] ?? null
+  const files = Array.from(target.files ?? [])
+  const invalid = files.filter((f) => !isValidFile(f))
+  if (invalid.length > 0) {
+    uploadError.value = '.txt または .md ファイルのみ登録できます'
+    return
+  }
+  selectedFiles.value = files
   uploadError.value = ''
   uploadSuccess.value = ''
 }
 
 function onDrop(e: DragEvent) {
   isDragOver.value = false
-  const file = e.dataTransfer?.files[0]
-  if (!file) return
-  if (!file.name.endsWith('.txt') && !file.name.endsWith('.md')) {
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  if (files.length === 0) return
+  const invalid = files.filter((f) => !isValidFile(f))
+  if (invalid.length > 0) {
     uploadError.value = '.txt または .md ファイルのみ登録できます'
     return
   }
-  selectedFile.value = file
+  selectedFiles.value = files
   uploadError.value = ''
   uploadSuccess.value = ''
 }
 
 async function uploadFile() {
-  if (!selectedFile.value) return
+  if (selectedFiles.value.length === 0) return
   uploadError.value = ''
   uploadSuccess.value = ''
   isUploading.value = true
+  uploadProgress.value = 0
 
-  try {
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-    if (uploadTitle.value.trim()) {
-      formData.append('title', uploadTitle.value.trim())
+  const succeeded: string[] = []
+  const failed: string[] = []
+
+  for (const file of selectedFiles.value) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      // タイトルは1ファイルのときだけ適用
+      if (selectedFiles.value.length === 1 && uploadTitle.value.trim()) {
+        formData.append('title', uploadTitle.value.trim())
+      }
+      const { data } = await axios.post(`${API_BASE}/api/knowledge/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      succeeded.push(data.title)
+    } catch (err: any) {
+      failed.push(`${file.name}：${err?.response?.data?.error ?? err?.message ?? '登録失敗'}`)
     }
-
-    const { data } = await axios.post(`${API_BASE}/api/knowledge/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-
-    uploadSuccess.value = `「${data.title}」を登録しました`
-    selectedFile.value = null
-    uploadTitle.value = ''
-    if (fileInputRef.value) fileInputRef.value.value = ''
-    await loadList()
-  } catch (err: any) {
-    uploadError.value = err?.response?.data?.error || err?.message || '登録に失敗しました'
-  } finally {
-    isUploading.value = false
+    uploadProgress.value++
   }
+
+  if (failed.length > 0) {
+    uploadError.value = failed.join('\n')
+  }
+  if (succeeded.length > 0) {
+    uploadSuccess.value = succeeded.map((t) => `「${t}」`).join('、') + ' を登録しました'
+  }
+
+  selectedFiles.value = []
+  uploadTitle.value = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
+  isUploading.value = false
+  await loadList()
 }
 
 async function loadList() {
@@ -390,10 +420,24 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-.drop-filename {
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.file-list-item {
   color: #1e3a8a;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  padding: 0.15rem 0;
+  word-break: break-all;
+}
+
+.file-list-item::before {
+  content: '📄 ';
 }
 
 .hidden-input {
