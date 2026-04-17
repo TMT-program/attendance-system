@@ -161,7 +161,12 @@ router.delete('/:docId', async (req, res) => {
     if (!docSnap.exists) return res.status(404).json({ error: 'ドキュメントが見つかりません' })
 
     const index = getPineconeIndex()
-    await index.deleteOne({ id: docId })
+    try {
+      await index.deleteOne({ id: docId })
+    } catch (pineconeErr: any) {
+      // Pineconeにベクトルが存在しない場合（404等）は無視してFirestore削除を続行
+      console.warn('[KNOWLEDGE DELETE] Pinecone deleteOne skipped:', pineconeErr?.message)
+    }
     await db.collection('knowledge_docs').doc(docId).delete()
 
     return res.json({ success: true })
