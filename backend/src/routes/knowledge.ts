@@ -107,25 +107,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const text = buffer.toString('utf8').trim()
     if (!text) return res.status(400).json({ error: 'ファイルの内容が空です' })
 
-    const chunks = chunkText(text)
-    if (chunks.length === 0) return res.status(400).json({ error: 'チャンクの生成に失敗しました' })
-
     const apiKey = getGeminiApiKey()
     const index = getPineconeIndex()
     const docId = uuidv4()
 
-    // 各チャンクをEmbeddingしてPineconeへupsert
-    const vectors = await Promise.all(
-      chunks.map(async (chunk, i) => {
-        const values = await embedText(apiKey, chunk)
-        return {
-          id: `${docId}_chunk_${i}`,
-          values,
-          metadata: { text: chunk, title, docId, chunkIndex: i },
-        }
-      })
-    )
-    await index.upsert({ records: vectors })
+    // テキスト全体をEmbeddingしてPineconeへupsert
+    const values = await embedText(apiKey, text)
+    await index.upsert({ records: [{ id: docId, values, metadata: { text, title, docId } }] })
 
     // Firestoreにドキュメントメタデータを保存
     const db = admin.firestore()
@@ -133,11 +121,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       docId,
       title,
       originalname,
-      chunkCount: chunks.length,
       uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
     })
 
-    return res.json({ docId, title, chunkCount: chunks.length })
+    return res.json({ docId, title })
   } catch (err: any) {
     console.error('[KNOWLEDGE UPLOAD ERROR]', err)
     return res.status(500).json({ error: err.message ?? 'Upload failed' })
@@ -152,18 +139,13 @@ router.get('/:docId/content', async (req, res) => {
     const docSnap = await db.collection('knowledge_docs').doc(docId).get()
     if (!docSnap.exists) return res.status(404).json({ error: 'ドキュメントが見つかりません' })
 
-    const { chunkCount, title } = docSnap.data() as { chunkCount: number; title: string }
-    const ids = Array.from({ length: chunkCount }, (_, i) => `${docId}_chunk_${i}`)
+    const { title } = docSnap.data() as { title: string }
 
     const index = getPineconeIndex()
-    const fetchResult = await index.fetch({ ids })
-    const records = fetchResult.records ?? {}
+    const fetchResult = await index.fetch({ ids: [docId] })
+    const content = (fetchResult.records?.[docId]?.metadata?.text as string) ?? ''
 
-    const chunks = ids
-      .map((id) => (records[id]?.metadata?.text as string) ?? '')
-      .filter(Boolean)
-
-    return res.json({ title, content: chunks.join('\n\n') })
+    return res.json({ title, content })
   } catch (err: any) {
     console.error('[KNOWLEDGE CONTENT ERROR]', err)
     return res.status(500).json({ error: err.message ?? 'Failed to fetch content' })
@@ -178,14 +160,8 @@ router.delete('/:docId', async (req, res) => {
     const docSnap = await db.collection('knowledge_docs').doc(docId).get()
     if (!docSnap.exists) return res.status(404).json({ error: 'ドキュメントが見つかりません' })
 
-    const { chunkCount } = docSnap.data() as { chunkCount: number }
-    const ids = Array.from({ length: chunkCount }, (_, i) => `${docId}_chunk_${i}`)
-    console.log('[DELETE] docId:', docId, 'chunkCount:', chunkCount, 'ids:', ids)
-
     const index = getPineconeIndex()
-    for (const id of ids) {
-      await index.deleteOne({ id })
-    }
+    await index.deleteOne({ id: docId })
     await db.collection('knowledge_docs').doc(docId).delete()
 
     return res.json({ success: true })

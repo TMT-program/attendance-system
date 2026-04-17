@@ -81,7 +81,6 @@
           <tr>
             <th>タイトル</th>
             <th>ファイル名</th>
-            <th>チャンク数</th>
             <th>登録日時</th>
             <th></th>
           </tr>
@@ -90,7 +89,6 @@
           <tr v-for="doc in knowledgeDocs" :key="doc.docId">
             <td>{{ doc.title }}</td>
             <td>{{ doc.originalname }}</td>
-            <td>{{ doc.chunkCount }}</td>
             <td>{{ formatDate(doc.uploadedAt) }}</td>
             <td class="action-cell">
               <button
@@ -137,7 +135,6 @@ type KnowledgeDoc = {
   docId: string
   title: string
   originalname: string
-  chunkCount: number
   uploadedAt: { _seconds: number } | null
 }
 
@@ -197,7 +194,7 @@ async function uploadFile() {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
-    uploadSuccess.value = `「${data.title}」を登録しました（${data.chunkCount}チャンク）`
+    uploadSuccess.value = `「${data.title}」を登録しました`
     selectedFile.value = null
     uploadTitle.value = ''
     if (fileInputRef.value) fileInputRef.value.value = ''
