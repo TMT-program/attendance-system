@@ -101,13 +101,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Megaphone } from 'lucide-vue-next'
-import axios from 'axios'
+import api from '../api'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 const isAdmin = ref(false)
@@ -157,7 +156,7 @@ const uploadFiles = async () => {
 
   try {
     isLoading.value = true
-    await axios.post(`${API_BASE_URL}/api/info/upload`, formData, {
+    await api.post('/api/info/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     alert('アップロード成功')
@@ -179,7 +178,7 @@ const deleteFile = async (filename: string) => {
   if (!confirm(`"${filename}" を削除しますか？`)) return
   try {
     isLoading.value = true
-    await axios.delete(`${API_BASE_URL}/api/info/${filename}`)
+    await api.delete(`/api/info/${filename}`)
     await fetchAnnouncements()
   } catch (err) {
     console.error('削除失敗', err)
@@ -192,7 +191,7 @@ const deleteFile = async (filename: string) => {
 const fetchAnnouncements = async () => {
   isLoading.value = true
   try {
-    const res = await axios.get<{ name: string; url: string }[]>(`${API_BASE_URL}/api/info`)
+    const res = await api.get<{ name: string; url: string }[]>('/api/info')
     announcements.value = res.data || []
   } catch (error) {
     console.error('周知事項取得エラー:', error)

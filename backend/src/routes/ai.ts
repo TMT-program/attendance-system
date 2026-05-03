@@ -1,6 +1,16 @@
 import express from 'express'
 import OpenAI from 'openai'
 import util from 'node:util'
+import rateLimit from 'express-rate-limit'
+import { verifyToken } from '../middleware/auth'
+
+const chatRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1分
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'リクエストが多すぎます。しばらく待ってから再試行してください。' },
+})
 
 const router = express.Router()
 
@@ -113,7 +123,7 @@ function logObj(label: string, obj: any) {
   )
 }
 
-router.post('/chat', async (req, res) => {
+router.post('/chat', verifyToken, chatRateLimit, async (req, res) => {
   // ✅ ルート到達確認（これが出ないならルートが叩けてない）
   console.log('[CHAT ROUTE HIT]', { time: new Date().toISOString() })
 

@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import { BookOpen, Send } from 'lucide-vue-next'
 
 type ChatRole = 'user' | 'assistant'
@@ -136,13 +136,7 @@ async function sendMessage() {
 
   isSending.value = true
   try {
-    const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').toString().replace(/\/$/, '')
-    if (!API_BASE) throw new Error('VITE_API_BASE_URL is not set')
-
-    const { data } = await axios.post<{ text: string }>(
-      `${API_BASE}/api/knowledge/chat`,
-      { message: trimmed }
-    )
+    const { data } = await api.post<{ text: string }>('/api/knowledge/chat', { message: trimmed })
 
     messages.value.push({
       id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),

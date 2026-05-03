@@ -103,10 +103,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 // デモモードで権限変更を禁止する UID
@@ -177,7 +176,7 @@ const toggleAdmin = async (user: User, event: Event) => {
 
   isLoading.value = true
   try {
-    await axios.patch(`${API_BASE_URL}/api/users/${user.uid}/role`, {
+    await api.patch(`/api/users/${user.uid}/role`, {
       isAdmin: isChecked
     })
     user.isAdmin = isChecked

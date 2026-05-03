@@ -1,11 +1,11 @@
-// src/routes/users.ts
 import express, { Request, Response } from 'express'
 import { admin } from '../firebase'
+import { verifyToken, requireAdmin } from '../middleware/auth'
 
 const router = express.Router()
 
-// POST /api/users
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/users - 管理者のみ
+router.post('/', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   const { email, password, displayName } = req.body
 
   if (!email || !password) {
@@ -22,19 +22,19 @@ router.post('/', async (req: Request, res: Response) => {
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       email,
       displayName: displayName || '',
-      isAdmin: false, // 初期はfalseで登録
+      isAdmin: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     })
 
     res.status(201).json({ uid: userRecord.uid, email: userRecord.email })
   } catch (error: any) {
-    console.error(error)
-    res.status(500).json({ error: error.message || 'ユーザー作成に失敗しました' })
+    console.error('ユーザー作成エラー:', error)
+    res.status(500).json({ error: 'ユーザー作成に失敗しました' })
   }
 })
 
-// GET /api/users
-router.get('/', async (req: Request, res: Response) => {
+// GET /api/users - 管理者のみ
+router.get('/', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const usersSnapshot = await admin.firestore().collection('users').get()
     const users: any[] = []
@@ -45,13 +45,13 @@ router.get('/', async (req: Request, res: Response) => {
 
     res.json(users)
   } catch (error) {
-    console.error('Failed to fetch users:', error)
+    console.error('ユーザー一覧取得エラー:', error)
     res.status(500).json({ error: 'ユーザー一覧の取得に失敗しました。' })
   }
 })
 
-// DELETE /api/users/:uid
-router.delete('/:uid', async (req: Request, res: Response) => {
+// DELETE /api/users/:uid - 管理者のみ
+router.delete('/:uid', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   const uid = req.params.uid
 
   if (!uid) {
@@ -69,8 +69,8 @@ router.delete('/:uid', async (req: Request, res: Response) => {
   }
 })
 
-// PATCH /api/users/:uid/role
-router.patch('/:uid/role', async (req: Request, res: Response) => {
+// PATCH /api/users/:uid/role - 管理者のみ
+router.patch('/:uid/role', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   const uid = req.params.uid
   const { isAdmin } = req.body
 
@@ -79,13 +79,8 @@ router.patch('/:uid/role', async (req: Request, res: Response) => {
   }
 
   try {
-    // Firebase Authentication にカスタムクレームを設定
     await admin.auth().setCustomUserClaims(uid, { admin: isAdmin })
-
-    // Firestore にも反映（任意）
-    await admin.firestore().collection('users').doc(uid).update({
-      isAdmin: isAdmin
-    })
+    await admin.firestore().collection('users').doc(uid).update({ isAdmin })
 
     res.status(200).json({ message: `ユーザー（${uid}）の管理者権限を ${isAdmin ? '付与' : '解除'}しました。` })
   } catch (error: any) {

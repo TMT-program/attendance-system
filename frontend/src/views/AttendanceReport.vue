@@ -62,14 +62,13 @@ import { ref, onMounted } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
-import axios from 'axios'
+import api from '../api'
 
 import AttendanceTab from './AttendanceTab.vue'
 import ReportTab from './ReportTab.vue'
 import ConfirmUserList from './ConfirmUserList.vue'
 import ConfirmReportTab from './ConfirmReportTab.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 type TabType = '勤怠' | '勤務実績' | '勤務実績確認'
 const tabs = ref<TabType[]>(['勤怠', '勤務実績'])
@@ -142,7 +141,7 @@ const fetchRecords = async () => {
   const daysInMonth = new Date(year.value, month.value, 0).getDate()
 
   try {
-    const res = await axios.get<AttendanceResponse>(`${API_BASE_URL}/api/attendance`, {
+    const res = await api.get<AttendanceResponse>('/api/attendance', {
       params: {
         uid: uid.value,
         year: year.value,

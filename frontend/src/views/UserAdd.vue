@@ -12,8 +12,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import axios from 'axios'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+import api from '../api'
 
 const newEmail = ref('')
 const newPassword = ref('')
@@ -27,7 +26,7 @@ interface AddUserResponse {
 const addUser = async () => {
   try {
     const originalEmail = newEmail.value // 入力時のメールアドレスを保持
-    await axios.post<AddUserResponse>(`${API_BASE_URL}/api/users`, {
+    await api.post<AddUserResponse>('/api/users', {
       email: originalEmail,
       password: newPassword.value,
       displayName: originalEmail.split('@')[0]

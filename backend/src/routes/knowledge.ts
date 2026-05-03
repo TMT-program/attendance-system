@@ -4,9 +4,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { Pinecone } from '@pinecone-database/pinecone'
 import axios from 'axios'
 import { admin } from '../firebase'
+import { verifyToken, requireAdmin } from '../middleware/auth'
 
 const router = express.Router()
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+})
 
 // ── クライアント初期化 ──────────────────────────────────────────────────────
 function getPineconeIndex() {
@@ -69,7 +73,7 @@ async function generateAnswer(apiKey: string, prompt: string): Promise<string> {
 }
 
 // ── ナレッジ一覧取得 ──────────────────────────────────────────────────────────
-router.get('/list', async (_req, res) => {
+router.get('/list', verifyToken, async (_req, res) => {
   try {
     const db = admin.firestore()
     const snapshot = await db
@@ -81,12 +85,12 @@ router.get('/list', async (_req, res) => {
     return res.json(docs)
   } catch (err: any) {
     console.error('[KNOWLEDGE LIST ERROR]', err)
-    return res.status(500).json({ error: err.message ?? 'Failed to list knowledge' })
+    return res.status(500).json({ error: 'ナレッジ一覧の取得に失敗しました' })
   }
 })
 
 // ── ナレッジ登録（ファイルアップロード） ─────────────────────────────────────
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', verifyToken, requireAdmin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'ファイルが必要です' })
 
@@ -127,12 +131,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     return res.json({ docId, title })
   } catch (err: any) {
     console.error('[KNOWLEDGE UPLOAD ERROR]', err)
-    return res.status(500).json({ error: err.message ?? 'Upload failed' })
+    return res.status(500).json({ error: 'アップロードに失敗しました' })
   }
 })
 
 // ── ナレッジ内容取得 ──────────────────────────────────────────────────────────
-router.get('/:docId/content', async (req, res) => {
+router.get('/:docId/content', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { docId } = req.params
     const db = admin.firestore()
@@ -148,12 +152,12 @@ router.get('/:docId/content', async (req, res) => {
     return res.json({ title, content })
   } catch (err: any) {
     console.error('[KNOWLEDGE CONTENT ERROR]', err)
-    return res.status(500).json({ error: err.message ?? 'Failed to fetch content' })
+    return res.status(500).json({ error: 'ナレッジの取得に失敗しました' })
   }
 })
 
 // ── ナレッジ削除 ──────────────────────────────────────────────────────────────
-router.delete('/:docId', async (req, res) => {
+router.delete('/:docId', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { docId } = req.params
     const db = admin.firestore()
@@ -172,12 +176,12 @@ router.delete('/:docId', async (req, res) => {
     return res.json({ success: true })
   } catch (err: any) {
     console.error('[KNOWLEDGE DELETE ERROR]', err)
-    return res.status(500).json({ error: err.message ?? 'Delete failed' })
+    return res.status(500).json({ error: 'ナレッジの削除に失敗しました' })
   }
 })
 
 // ── RAGチャット ───────────────────────────────────────────────────────────────
-router.post('/chat', async (req, res) => {
+router.post('/chat', verifyToken, async (req, res) => {
   try {
     const message = ((req.body as any).message ?? '').toString().trim()
     if (!message) return res.status(400).json({ error: 'message is required' })
@@ -223,7 +227,7 @@ ${message}`
     return res.json({ text })
   } catch (err: any) {
     console.error('[KNOWLEDGE CHAT ERROR]', err)
-    return res.status(500).json({ error: err.message ?? 'Chat failed' })
+    return res.status(500).json({ error: 'チャットの処理に失敗しました' })
   }
 })
 

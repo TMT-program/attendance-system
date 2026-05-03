@@ -13,11 +13,9 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
+import api from '../api'
 import { ref } from 'vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const isLoading = ref(false)
 
 const props = defineProps<{
@@ -44,7 +42,7 @@ const clockIn = async () => {
   const date = getCurrentDateString()
   isLoading.value = true
   try {
-    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
+    await api.post('/api/attendance/report', {
       uid: props.uid,
       date,
       start: time,
@@ -64,7 +62,7 @@ const clockOut = async () => {
   const date = getCurrentDateString()
   isLoading.value = true
   try {
-    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
+    await api.post('/api/attendance/report', {
       uid: props.uid,
       date,
       end: time,

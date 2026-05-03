@@ -129,11 +129,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import type { User } from '../components/types'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 const props = defineProps<{ users: User[] }>()
@@ -222,7 +221,7 @@ const deleteUsers = async () => {
     // まとめて削除（同時送信・結果集計）
     const targets = selectedUsers.value.map(u => u)
     const results = await Promise.allSettled(
-      targets.map(u => axios.delete(`${API_BASE_URL}/api/users/${u.uid}`))
+      targets.map(u => api.delete(`/api/users/${u.uid}`))
     )
 
     const success = results.filter(r => r.status === 'fulfilled').length

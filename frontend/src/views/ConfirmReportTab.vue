@@ -106,10 +106,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
   user: { uid: string; displayName: string }
@@ -151,7 +149,7 @@ const toLocalYMD = (y: number, m: number, d: number) =>
 /** 祝日取得（同月の祝日だけ返すAPI想定） */
 const fetchHolidays = async (y: number, m: number) => {
   try {
-    const res = await axios.get<string[]>(`${API_BASE_URL}/api/attendance/holidays`, {
+    const res = await api.get<string[]>('/api/attendance/holidays', {
       params: { year: y, month: String(m).padStart(2, '0') },
     })
     const arr = Array.isArray(res.data) ? res.data : []
@@ -167,7 +165,7 @@ const fetchRecords = async () => {
   try {
     await fetchHolidays(year.value, month.value)
 
-    const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
+    const res = await api.get('/api/attendance', {
       params: {
         uid: props.user.uid,
         year: year.value,
@@ -242,7 +240,7 @@ const getStatusClass = (status: StatusType, dayIndex: number, ymd: string) => {
 const approve = async (entry: RecordEntry) => {
   try {
     isLoading.value = true
-    await axios.post(`${API_BASE_URL}/api/attendance/approve`, {
+    await api.post('/api/attendance/approve', {
       uid: props.user.uid,
       date: entry.fullDate,
     })
@@ -258,7 +256,7 @@ const approve = async (entry: RecordEntry) => {
 const reject = async (entry: RecordEntry) => {
   try {
     isLoading.value = true
-    await axios.post(`${API_BASE_URL}/api/attendance/reject`, {
+    await api.post('/api/attendance/reject', {
       uid: props.user.uid,
       date: entry.fullDate,
     })
@@ -274,7 +272,7 @@ const reject = async (entry: RecordEntry) => {
 const revoke = async (entry: RecordEntry) => {
   try {
     isLoading.value = true
-    await axios.post(`${API_BASE_URL}/api/attendance/revoke`, {
+    await api.post('/api/attendance/revoke', {
       uid: props.user.uid,
       date: entry.fullDate,
     })

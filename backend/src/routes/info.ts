@@ -1,6 +1,7 @@
 import express from 'express'
 import multer from 'multer'
 import { admin } from '../firebase'
+import { verifyToken, requireAdmin } from '../middleware/auth'
 
 const router = express.Router()
 const db = admin.firestore()
@@ -12,15 +13,11 @@ const upload = multer({
 })
 
 router.get('/health', (_req, res) => {
-  res.status(200).json({
-    ok: true,
-    uptime: process.uptime(),
-    timestamp: Date.now(),
-  })
+  res.status(200).json({ ok: true })
 })
 
 // 一覧取得: Firestore からファイル名を取得し、StorageのURLを返す
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
     const snapshot = await db.collection('announcements').get()
     const files: { name: string; url: string }[] = []
@@ -53,7 +50,7 @@ router.get('/', async (req, res) => {
 })
 
 // アップロード: 複数 PDF を受け取って Storage + Firestore に保存
-router.post('/upload', upload.array('files'), async (req, res) => {
+router.post('/upload', verifyToken, requireAdmin, upload.array('files'), async (req, res) => {
   console.log('受け取ったファイル', req.files)
   if (!req.files || !(req.files instanceof Array)) {
     return res.status(400).json({ error: 'ファイルが見つかりません' })
@@ -104,7 +101,7 @@ router.post('/upload', upload.array('files'), async (req, res) => {
 })
 
 // 削除: ファイル名で Storage + Firestore 両方から削除
-router.delete('/:filename', async (req, res) => {
+router.delete('/:filename', verifyToken, requireAdmin, async (req, res) => {
   const filename = req.params.filename
   if (!filename.endsWith('.pdf')) {
     return res.status(400).json({ error: 'PDFファイル名が必要です' })

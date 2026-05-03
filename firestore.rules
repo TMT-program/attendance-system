@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 管理者判定ヘルパー
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // users コレクション
+    // - 本人は自分のドキュメントを読める
+    // - 管理者は全員の読み書きが可能
+    // - isAdmin フィールドの変更は管理者のみ
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin();
+      allow update: if request.auth != null && request.auth.uid == uid
+                       && !('isAdmin' in request.resource.data.diff(resource.data).affectedKeys())
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // attendanceRecords コレクション
+    // - 本人は自分のデータのみ読み書き可能
+    // - 管理者は全員のデータを読み書き可能
+    match /attendanceRecords/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+        && (request.auth.uid == uid || isAdmin());
+    }
+
+    // knowledge_docs コレクション（管理者のみ）
+    match /knowledge_docs/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // announcements コレクション
+    // - 読み取りは認証済みユーザー全員
+    // - 書き込みは管理者のみ
+    match /announcements/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+  }
+}

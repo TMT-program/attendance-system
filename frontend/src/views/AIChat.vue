@@ -110,7 +110,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 import { MessageCircle, Send } from 'lucide-vue-next'
 
 import { auth } from '../firebase'
@@ -309,9 +309,6 @@ async function sendMessage() {
 
   isSending.value = true
   try {
-    const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').toString().replace(/\/$/, '')
-    if (!API_BASE) throw new Error('VITE_API_BASE_URL is not set')
-
     // ✅ previousResponseId を一緒に送る（空なら送らない）
     const payload: any = {
       message: trimmed,
@@ -320,10 +317,7 @@ async function sendMessage() {
       payload.previousResponseId = prevResponseId.value
     }
 
-    const { data } = await axios.post<AIChatResponse>(
-      `${API_BASE}/api/ai/chat`,
-      payload
-    )
+    const { data } = await api.post<AIChatResponse>('/api/ai/chat', payload)
 
     messages.value.push({
       id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),

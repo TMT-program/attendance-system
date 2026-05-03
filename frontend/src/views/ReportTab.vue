@@ -108,10 +108,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const props = defineProps<{
   uid: string
@@ -185,8 +183,8 @@ const computeTotalWorkTime = () => {
 /** 祝日取得（存在すれば使用、失敗時は空のまま） */
 const fetchHolidays = async (y: number, m: number) => {
   try {
-    const res = await axios.get<string[]>(
-      `${API_BASE_URL}/api/attendance/holidays`,
+    const res = await api.get<string[]>(
+      '/api/attendance/holidays',
       { params: { year: y, month: String(m).padStart(2, '0') } }
     )
     const arr = Array.isArray(res.data) ? res.data : []
@@ -205,7 +203,7 @@ const fetchRecords = async () => {
     // 可能なら祝日を取得（失敗しても続行）
     await fetchHolidays(year.value, month.value)
 
-    const res = await axios.get(`${API_BASE_URL}/api/attendance`, {
+    const res = await api.get('/api/attendance', {
       params: {
         uid: props.uid,
         year: year.value,
@@ -307,7 +305,7 @@ const submitReport = async (entry: RecordEntry) => {
     }
   }
   try {
-    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
+    await api.post('/api/attendance/report', {
       uid: props.uid,
       date: entry.fullDate, // JSTの暦日キー
       start: entry.start,
@@ -325,7 +323,7 @@ const submitReport = async (entry: RecordEntry) => {
 /** 取消 */
 const cancelSubmission = async (entry: RecordEntry) => {
   try {
-    await axios.post(`${API_BASE_URL}/api/attendance/report`, {
+    await api.post('/api/attendance/report', {
       uid: props.uid,
       date: entry.fullDate, // JSTの暦日キー
       start: entry.start,

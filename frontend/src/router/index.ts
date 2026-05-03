@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import { auth } from '../firebase'  // Firebase認証の状態を確認するために必要
+import { auth, db } from '../firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import Login from '../views/Login.vue'
 import Menu from '../views/Menu.vue'
 import UserManagement from '../views/UserManagement.vue'
@@ -33,7 +34,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/user-management',
     name: 'UserManagement',
     component: UserManagement,
-    meta: { requiresAuth: true }, // 🔐 認証が必要
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/AttendanceReport',
@@ -87,7 +88,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/KnowledgeAdmin',
     name: 'KnowledgeAdmin',
     component: KnowledgeAdmin,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
 ]
 
@@ -96,17 +97,22 @@ const router = createRouter({
   routes,
 })
 
-// 👇 認証ガードを設定
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
   const currentUser = auth.currentUser
 
   if (requiresAuth && !currentUser) {
-    // 未ログインで認証が必要なページにアクセスしようとした場合
-    next('/login')
-  } else {
-    next()
+    return next('/login')
   }
+
+  if (requiresAdmin && currentUser) {
+    const snap = await getDoc(doc(db, 'users', currentUser.uid))
+    const isAdmin = snap.exists() && !!snap.data().isAdmin
+    if (!isAdmin) return next('/menu')
+  }
+
+  next()
 })
 
 export default router

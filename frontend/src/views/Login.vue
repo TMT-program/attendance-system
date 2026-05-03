@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 
 import { auth, db } from '../firebase'
 import {
@@ -94,7 +94,6 @@ import { doc, getDoc } from 'firebase/firestore'
 /* =========================
  * 環境変数
  * ========================= */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const IS_DEMO = import.meta.env.VITE_DEMO_FLAG === 'true'
 
 /* =========================
@@ -159,7 +158,7 @@ async function warmupBackend() {
   backendWarmedUp = true
 
   try {
-    await axios.get(`${API_BASE_URL}/api/info/health`, {
+    await api.get('/api/info/health', {
       params: { t: Date.now() },
       timeout: 8000,
     })

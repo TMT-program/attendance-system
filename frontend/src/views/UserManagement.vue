@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import UserMenu from './UserMenu.vue'
 import UserList from './UserList.vue'
 import UserAdd from './UserAdd.vue'
@@ -39,7 +39,6 @@ import UserDelete from './UserDelete.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import type { User } from '../components/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const currentView = ref<'menu' | 'list' | 'add' | 'delete'>('menu')
 const users = ref<User[]>([])
@@ -53,7 +52,7 @@ function goBackToMenu() {
 
 async function fetchUsers() {
   try {
-    const res = await axios.get<User[]>(`${API_BASE_URL}/api/users`)
+    const res = await api.get<User[]>('/api/users')
     users.value = res.data
   } catch (error) {
     console.error('ユーザー取得失敗:', error)

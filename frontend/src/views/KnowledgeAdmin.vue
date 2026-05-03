@@ -135,7 +135,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import { Database, Upload } from 'lucide-vue-next'
 
 type KnowledgeDoc = {
@@ -144,8 +144,6 @@ type KnowledgeDoc = {
   originalname: string
   uploadedAt: { _seconds: number } | null
 }
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').toString().replace(/\/$/, '')
 
 const uploadTitle = ref('')
 const selectedFiles = ref<File[]>([])
@@ -214,7 +212,7 @@ async function uploadFile() {
       if (selectedFiles.value.length === 1 && uploadTitle.value.trim()) {
         formData.append('title', uploadTitle.value.trim())
       }
-      const { data } = await axios.post(`${API_BASE}/api/knowledge/upload`, formData, {
+      const { data } = await api.post('/api/knowledge/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       succeeded.push(data.title)
@@ -241,7 +239,7 @@ async function uploadFile() {
 async function loadList() {
   isLoadingList.value = true
   try {
-    const { data } = await axios.get<KnowledgeDoc[]>(`${API_BASE}/api/knowledge/list`)
+    const { data } = await api.get<KnowledgeDoc[]>('/api/knowledge/list')
     knowledgeDocs.value = data
   } catch (err: any) {
     console.error('Failed to load knowledge list', err)
@@ -254,7 +252,7 @@ async function deleteDoc(docId: string) {
   if (!confirm('このナレッジを削除しますか？')) return
   deletingDocId.value = docId
   try {
-    await axios.delete(`${API_BASE}/api/knowledge/${docId}`)
+    await api.delete(`/api/knowledge/${docId}`)
     knowledgeDocs.value = knowledgeDocs.value.filter((d) => d.docId !== docId)
   } catch (err: any) {
     alert(err?.response?.data?.error || '削除に失敗しました')
@@ -269,7 +267,7 @@ async function viewDoc(docId: string) {
   modalTitle.value = ''
   modalContent.value = ''
   try {
-    const { data } = await axios.get(`${API_BASE}/api/knowledge/${docId}/content`)
+    const { data } = await api.get(`/api/knowledge/${docId}/content`)
     modalTitle.value = data.title
     modalContent.value = data.content
   } catch (err: any) {
