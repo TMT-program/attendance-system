@@ -81,8 +81,8 @@
         登録済みのナレッジはありません
       </div>
 
-      <div class="table-wrapper">
-      <table v-else class="doc-table">
+      <div v-else class="table-wrapper">
+      <table class="doc-table">
         <thead>
           <tr>
             <th>タイトル</th>
