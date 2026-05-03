@@ -81,11 +81,12 @@
         登録済みのナレッジはありません
       </div>
 
+      <div class="table-wrapper">
       <table v-else class="doc-table">
         <thead>
           <tr>
             <th>タイトル</th>
-            <th>ファイル名</th>
+            <th class="col-hide-sp">ファイル名</th>
             <th>登録日時</th>
             <th></th>
           </tr>
@@ -93,7 +94,7 @@
         <tbody>
           <tr v-for="doc in knowledgeDocs" :key="doc.docId">
             <td>{{ doc.title }}</td>
-            <td>{{ doc.originalname }}</td>
+            <td class="col-hide-sp">{{ doc.originalname }}</td>
             <td>{{ formatDate(doc.uploadedAt) }}</td>
             <td class="action-cell">
               <button
@@ -113,6 +114,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 
@@ -507,11 +509,16 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .doc-table td {
   padding: 0.65rem 0.8rem;
   border-bottom: 1px solid #e2e8f0;
   color: #0f172a;
-  word-break: break-all;
+  word-break: break-word;
   text-align: left;
 }
 
@@ -632,5 +639,7 @@ onMounted(() => {
   .knowledge-admin-container { padding: 1rem; }
   .title { font-size: 1.7rem; }
   .doc-table { font-size: 0.82rem; }
+  .col-hide-sp { display: none; }
+  .action-cell { flex-direction: column; gap: 0.35rem; }
 }
 </style>
