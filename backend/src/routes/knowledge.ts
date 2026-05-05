@@ -78,7 +78,7 @@ async function callAzureClaude(messages: any[], tools: any[]): Promise<any> {
 const TOOL_SEARCH_KNOWLEDGE = {
   name: 'search_knowledge',
   description:
-    '社内規定・申請手順・就業規則・ルールなど社内ナレッジを検索する。勤怠データや個人の出退勤記録は含まない。',
+    '社内規定・申請手順・就業規則・システムの操作方法・ルールなど社内ナレッジを検索する。勤怠データや個人の出退勤記録は含まない。',
   input_schema: {
     type: 'object',
     properties: {
