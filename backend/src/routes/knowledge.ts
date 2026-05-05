@@ -286,6 +286,11 @@ router.post('/chat', verifyToken, async (req, res) => {
     if (!message) return res.status(400).json({ error: 'message is required' })
     if (message.length > 500) return res.status(400).json({ error: 'message is too long' })
 
+    const rawHistory: any[] = Array.isArray((req.body as any).history) ? (req.body as any).history : []
+    const history = rawHistory
+      .filter((h) => (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string')
+      .slice(-20)
+
     console.log('[KNOWLEDGE CHAT REQUEST]', {
       uid: req.uid,
       isAdmin: req.isAdmin,
@@ -295,7 +300,10 @@ router.post('/chat', verifyToken, async (req, res) => {
     const tools: any[] = [TOOL_SEARCH_KNOWLEDGE, TOOL_GET_MY_ATTENDANCE]
     if (req.isAdmin) tools.push(TOOL_GET_ALL_ATTENDANCE)
 
-    const messages: any[] = [{ role: 'user', content: message }]
+    const messages: any[] = [
+      ...history.map((h) => ({ role: h.role, content: h.content })),
+      { role: 'user', content: message },
+    ]
     const usedTools: string[] = []
     const MAX_ITERATIONS = 5
     let response: any

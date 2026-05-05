@@ -194,7 +194,10 @@ async function sendMessage() {
 
   isSending.value = true
   try {
-    const requestBody = { message: trimmed }
+    const history = messages.value
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.text }))
+    const requestBody = { message: trimmed, history }
     console.log('[KNOWLEDGE CHAT] リクエスト送信:', requestBody)
 
     const { data } = await api.post<{ text: string; usedTools: string[] }>(
