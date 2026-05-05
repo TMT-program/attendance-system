@@ -20,16 +20,10 @@
         <span class="label">周知事項</span>
       </button>
 
-      <!-- ✅ 追加：AIチャット -->
-      <button class="menu-card" @click="goToAIChat">
-        <Bot class="icon" />
-        <span class="label">AIチャット</span>
-      </button>
-
-      <!-- ✅ 追加：社内ナレッジ回答 -->
+      <!-- AIチャット／社内ナレッジ回答 -->
       <button class="menu-card" @click="goToKnowledgeChat">
-        <BookOpen class="icon" />
-        <span class="label">社内ナレッジ回答</span>
+        <Bot class="icon" />
+        <span class="label label-two-line">AIチャット<br />社内ナレッジ回答</span>
       </button>
 
       <!-- ✅ 追加：ナレッジ管理（管理者のみ） -->
@@ -44,7 +38,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, ClipboardEdit, Megaphone, MessageCircle, Bot, Cpu, BookOpen, Database } from 'lucide-vue-next'
+import { User, ClipboardEdit, Megaphone, Bot, Database } from 'lucide-vue-next'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
@@ -135,11 +129,6 @@ const goToAttendanceReport = () => {
 
 const goAnnouncements = () => {
   router.push({ name: 'Announcements' })
-}
-
-/** ✅ 追加：AIチャット画面へ */
-const goToAIChat = () => {
-  router.push({ name: 'AIChat' })
 }
 
 const goToKnowledgeChat = () => {
@@ -234,5 +223,11 @@ const goToKnowledgeAdmin = () => {
 
 .label {
   font-size: 1.1rem;
+}
+
+.label-two-line {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
 }
 </style>

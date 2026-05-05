@@ -3,16 +3,17 @@ import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 import { Pinecone } from '@pinecone-database/pinecone'
 import axios from 'axios'
+import OpenAI from 'openai'
 import { admin } from '../firebase'
 import { verifyToken, requireAdmin } from '../middleware/auth'
 
 const router = express.Router()
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
 })
 
-// ── クライアント初期化 ──────────────────────────────────────────────────────
+// ── クライアント初期化 ────────────────────────────────────────────────────────
 function getPineconeIndex() {
   const apiKey = process.env.PINECONE_API_KEY
   const indexName = process.env.PINECONE_INDEX_NAME
@@ -21,55 +22,158 @@ function getPineconeIndex() {
   return pc.index(indexName)
 }
 
-function getGeminiApiKey(): string {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set')
-  return apiKey
+let cachedOpenAI: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!cachedOpenAI) {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) throw new Error('OPENAI_API_KEY is not set')
+    cachedOpenAI = new OpenAI({ apiKey })
+  }
+  return cachedOpenAI
 }
 
-// ── テキストのチャンク分割 ────────────────────────────────────────────────────
-function chunkText(text: string, maxLen = 400): string[] {
-  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
-  const chunks: string[] = []
-  let current = ''
+function getAzureClaudeConfig() {
+  const apiKey = process.env.AZURE_CLAUDE_API_KEY
+  const endpoint = process.env.AZURE_CLAUDE_ENDPOINT
+  const model = process.env.AZURE_CLAUDE_MODEL
+  if (!apiKey || !endpoint || !model) throw new Error('Azure Claude env vars are not set')
+  return { apiKey, endpoint, model }
+}
 
-  for (const para of paragraphs) {
-    if ((current + '\n\n' + para).trim().length <= maxLen) {
-      current = current ? current + '\n\n' + para : para
-    } else {
-      if (current) chunks.push(current.trim())
-      // 1パラグラフ自体がmaxLenを超える場合は強制分割
-      if (para.length > maxLen) {
-        for (let i = 0; i < para.length; i += maxLen) {
-          chunks.push(para.slice(i, i + maxLen))
-        }
-        current = ''
-      } else {
-        current = para
-      }
+// ── Embedding生成（OpenAI） ──────────────────────────────────────────────────
+async function embedText(text: string): Promise<number[]> {
+  const openai = getOpenAI()
+  const response = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: text,
+    dimensions: 768,
+  })
+  return response.data[0].embedding
+}
+
+// ── Azure Claude呼び出し ──────────────────────────────────────────────────────
+async function callAzureClaude(messages: any[], tools: any[]): Promise<any> {
+  const { apiKey, endpoint, model } = getAzureClaudeConfig()
+  const { data } = await axios.post(
+    endpoint,
+    {
+      model,
+      max_tokens: 2048,
+      system: SYSTEM_PROMPT,
+      messages,
+      tools,
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+    }
+  )
+  return data
+}
+
+// ── ツール定義 ───────────────────────────────────────────────────────────────
+const TOOL_SEARCH_KNOWLEDGE = {
+  name: 'search_knowledge',
+  description:
+    '社内規定・申請手順・就業規則・ルールなど社内ナレッジを検索する。勤怠データや個人の出退勤記録は含まない。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: '検索クエリ' },
+    },
+    required: ['query'],
+  },
+}
+
+const TOOL_GET_MY_ATTENDANCE = {
+  name: 'get_my_attendance',
+  description:
+    'ログインユーザー自身の勤怠記録（出退勤時刻・作業内容・ステータス）を取得する。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      year: { type: 'string', description: '年（例: 2026）' },
+      month: { type: 'string', description: '月（例: 05）' },
+    },
+    required: ['year', 'month'],
+  },
+}
+
+const TOOL_GET_ALL_ATTENDANCE = {
+  name: 'get_all_attendance',
+  description: '全ユーザーの勤怠記録を取得する。管理者専用。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      year: { type: 'string', description: '年（例: 2026）' },
+      month: { type: 'string', description: '月（例: 05）' },
+    },
+    required: ['year', 'month'],
+  },
+}
+
+// ── システムプロンプト ────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `あなたは勤怠管理システムのAIアシスタントです。
+ユーザーの質問に応じて適切なツールを使い、日本語で簡潔に回答してください。
+
+ツールの使い分け:
+- 社内規定・申請手順・就業規則・経費精算などのルールに関する質問 → search_knowledge を使う
+- 自分の出退勤・残業・勤怠記録に関する質問 → get_my_attendance を使う
+- 全ユーザーの勤怠に関する質問（管理者のみ利用可能） → get_all_attendance を使う
+- ツールが不要な一般的な質問 → そのまま回答する`.trim()
+
+// ── ツール実行関数 ───────────────────────────────────────────────────────────
+async function executeSearchKnowledge(query: string): Promise<string> {
+  const index = getPineconeIndex()
+  const queryVector = await embedText(query)
+  const searchResult = await index.query({
+    vector: queryVector,
+    topK: 5,
+    includeMetadata: true,
+  })
+  const contexts = searchResult.matches
+    .filter((m) => (m.score ?? 0) >= 0.5)
+    .map((m) => (m.metadata?.text ?? '').toString())
+    .filter(Boolean)
+  if (contexts.length === 0) return '関連する社内ナレッジが見つかりませんでした。'
+  return contexts.map((c, i) => `【参考${i + 1}】\n${c}`).join('\n\n')
+}
+
+async function executeGetMyAttendance(uid: string, year: string, month: string): Promise<string> {
+  const db = admin.firestore()
+  const yearMonth = `${year}-${month.padStart(2, '0')}`
+  const docRef = db.collection('attendanceRecords').doc(uid).collection('records').doc(yearMonth)
+  const doc = await docRef.get()
+  if (!doc.exists) return `${yearMonth}の勤怠データはありません。`
+  return JSON.stringify(doc.data())
+}
+
+async function executeGetAllAttendance(year: string, month: string): Promise<string> {
+  const db = admin.firestore()
+  const yearMonth = `${year}-${month.padStart(2, '0')}`
+
+  const usersSnapshot = await db.collection('users').get()
+  const userNames: Record<string, string> = {}
+  usersSnapshot.forEach((doc) => {
+    const data = doc.data()
+    userNames[doc.id] = data.displayName || data.email || doc.id
+  })
+
+  const recordsSnapshot = await db.collection('attendanceRecords').get()
+  const results: Record<string, any> = {}
+  for (const userDoc of recordsSnapshot.docs) {
+    const recordDoc = await userDoc.ref.collection('records').doc(yearMonth).get()
+    if (recordDoc.exists) {
+      const name = userNames[userDoc.id] || userDoc.id
+      results[name] = recordDoc.data()
     }
   }
-  if (current) chunks.push(current.trim())
-  return chunks
-}
 
-// ── Embedding生成 ────────────────────────────────────────────────────────────
-async function embedText(apiKey: string, text: string): Promise<number[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`
-  const { data } = await axios.post<any>(url, {
-    model: 'models/gemini-embedding-001',
-    content: { parts: [{ text }] },
-    outputDimensionality: 768,
-  })
-  return data.embedding.values as number[]
-}
-
-async function generateAnswer(apiKey: string, prompt: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
-  const { data } = await axios.post<any>(url, {
-    contents: [{ parts: [{ text: prompt }] }],
-  })
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  if (Object.keys(results).length === 0) return `${yearMonth}の勤怠データはありません。`
+  return JSON.stringify(results)
 }
 
 // ── ナレッジ一覧取得 ──────────────────────────────────────────────────────────
@@ -98,7 +202,6 @@ router.post('/upload', verifyToken, requireAdmin, upload.single('file'), async (
     const originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8')
     const title = (req.body.title as string | undefined)?.trim() || originalname
 
-    // txt / md のみ許可
     const isText =
       mimetype === 'text/plain' ||
       mimetype === 'text/markdown' ||
@@ -111,15 +214,12 @@ router.post('/upload', verifyToken, requireAdmin, upload.single('file'), async (
     const text = buffer.toString('utf8').trim()
     if (!text) return res.status(400).json({ error: 'ファイルの内容が空です' })
 
-    const apiKey = getGeminiApiKey()
     const index = getPineconeIndex()
     const docId = uuidv4()
 
-    // テキスト全体をEmbeddingしてPineconeへupsert
-    const values = await embedText(apiKey, text)
+    const values = await embedText(text)
     await index.upsert({ records: [{ id: docId, values, metadata: { text, title, docId } }] })
 
-    // Firestoreにドキュメントメタデータを保存
     const db = admin.firestore()
     await db.collection('knowledge_docs').doc(docId).set({
       docId,
@@ -168,7 +268,6 @@ router.delete('/:docId', verifyToken, requireAdmin, async (req, res) => {
     try {
       await index.deleteOne({ id: docId })
     } catch (pineconeErr: any) {
-      // Pineconeにベクトルが存在しない場合（404等）は無視してFirestore削除を続行
       console.warn('[KNOWLEDGE DELETE] Pinecone deleteOne skipped:', pineconeErr?.message)
     }
     await db.collection('knowledge_docs').doc(docId).delete()
@@ -180,51 +279,91 @@ router.delete('/:docId', verifyToken, requireAdmin, async (req, res) => {
   }
 })
 
-// ── RAGチャット ───────────────────────────────────────────────────────────────
+// ── チャット（Function Calling） ──────────────────────────────────────────────
 router.post('/chat', verifyToken, async (req, res) => {
   try {
     const message = ((req.body as any).message ?? '').toString().trim()
     if (!message) return res.status(400).json({ error: 'message is required' })
     if (message.length > 500) return res.status(400).json({ error: 'message is too long' })
 
-    const apiKey = getGeminiApiKey()
-    const index = getPineconeIndex()
-
-    // 質問をEmbeddingしてPineconeで類似検索
-    const queryVector = await embedText(apiKey, message)
-    const searchResult = await index.query({
-      vector: queryVector,
-      topK: 5,
-      includeMetadata: true,
+    console.log('[KNOWLEDGE CHAT REQUEST]', {
+      uid: req.uid,
+      isAdmin: req.isAdmin,
+      message,
     })
 
-    const contexts = searchResult.matches
-      .filter((m) => (m.score ?? 0) >= 0.5)
-      .map((m) => (m.metadata?.text ?? '').toString())
-      .filter(Boolean)
+    const tools: any[] = [TOOL_SEARCH_KNOWLEDGE, TOOL_GET_MY_ATTENDANCE]
+    if (req.isAdmin) tools.push(TOOL_GET_ALL_ATTENDANCE)
 
-    // コンテキストが取れなかった場合
-    if (contexts.length === 0) {
-      return res.json({
-        text: '関連する社内ナレッジが見つかりませんでした。別のキーワードで質問してみてください。',
+    const messages: any[] = [{ role: 'user', content: message }]
+    const usedTools: string[] = []
+    const MAX_ITERATIONS = 5
+    let response: any
+
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      console.log(`[AZURE CLAUDE REQUEST] iteration=${i}`, {
+        messages_count: messages.length,
       })
+
+      response = await callAzureClaude(messages, tools)
+
+      console.log('[AZURE CLAUDE RESPONSE]', {
+        stop_reason: response.stop_reason,
+        content_types: response.content?.map((c: any) => c.type),
+        usage: response.usage,
+      })
+
+      if (response.stop_reason !== 'tool_use') break
+
+      messages.push({ role: 'assistant', content: response.content })
+
+      const toolResults: any[] = []
+      for (const block of response.content as any[]) {
+        if (block.type !== 'tool_use') continue
+
+        const toolName: string = block.name
+        const toolInput = block.input
+        usedTools.push(toolName)
+
+        console.log('[TOOL EXECUTE]', { tool: toolName, input: toolInput })
+
+        let result: string
+        try {
+          if (toolName === 'search_knowledge') {
+            result = await executeSearchKnowledge(toolInput.query)
+          } else if (toolName === 'get_my_attendance') {
+            result = await executeGetMyAttendance(req.uid!, toolInput.year, toolInput.month)
+          } else if (toolName === 'get_all_attendance' && req.isAdmin) {
+            result = await executeGetAllAttendance(toolInput.year, toolInput.month)
+          } else {
+            result = '権限がありません'
+          }
+        } catch (toolErr: any) {
+          result = `ツール実行エラー: ${toolErr.message}`
+          console.error('[TOOL ERROR]', { tool: toolName, error: toolErr.message })
+        }
+
+        console.log('[TOOL RESULT]', { tool: toolName, result_length: result!.length })
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: result!,
+        })
+      }
+
+      messages.push({ role: 'user', content: toolResults })
     }
 
-    const contextText = contexts.map((c, i) => `【参考${i + 1}】\n${c}`).join('\n\n')
+    const textBlock = response?.content?.find((c: any) => c.type === 'text')
+    const text = textBlock?.text ?? '（回答を生成できませんでした）'
 
-    const prompt = `あなたは社内ナレッジを元に質問に答えるAIアシスタントです。
-以下の「社内ナレッジ」の情報のみを根拠として、ユーザーの質問に日本語で簡潔に回答してください。
-ナレッジに記載のない内容については「社内ナレッジには記載がありません」と答えてください。
+    console.log('[KNOWLEDGE CHAT RESPONSE]', {
+      usedTools,
+      text_length: text.length,
+    })
 
-【社内ナレッジ】
-${contextText}
-
-【ユーザーの質問】
-${message}`
-
-    const text = await generateAnswer(apiKey, prompt)
-
-    return res.json({ text })
+    return res.json({ text, usedTools })
   } catch (err: any) {
     console.error('[KNOWLEDGE CHAT ERROR]', err)
     return res.status(500).json({ error: 'チャットの処理に失敗しました' })

@@ -2,15 +2,15 @@
   <div class="knowledge-chat-container">
     <div class="header">
       <div class="title-area">
-        <BookOpen class="title-icon" />
+        <Bot class="title-icon" />
         <h1 class="title">社内ナレッジ回答</h1>
       </div>
     </div>
 
     <div class="hint-card">
       <p class="hint-text">
-        社内ナレッジに登録された情報をもとにAIが回答します。<br />
-        ※登録されていない内容については回答できません。
+        社内ナレッジや勤怠データをもとにAIが回答します。<br />
+        一般的な質問にも対応しています。
       </p>
     </div>
 
@@ -27,6 +27,13 @@
               <span class="role-label">{{ m.role === 'user' ? 'あなた' : 'AI' }}</span>
               <span class="time">{{ m.time }}</span>
             </div>
+            <div v-if="m.usedTools && m.usedTools.length > 0" class="tool-badges">
+              <span
+                v-for="tool in m.usedTools"
+                :key="tool"
+                class="tool-badge"
+              >{{ toolLabel(tool) }}</span>
+            </div>
             <div class="text" v-text="m.text"></div>
           </div>
         </div>
@@ -37,14 +44,14 @@
               <span class="role-label">AI</span>
               <span class="time">…</span>
             </div>
-            <div class="text typing">検索中…</div>
+            <div class="text typing">処理中…</div>
           </div>
         </div>
 
         <div v-if="messages.length === 0" class="empty-state">
-          <div class="empty-title">社内ナレッジに質問してみましょう</div>
+          <div class="empty-title">AIに質問してみましょう</div>
           <div class="empty-sub">
-            例：有給申請の手順は？ / 残業申請はいつまで？ / 経費精算のルールは？
+            例：有給申請の手順は？ / 今月の自分の勤怠を教えて / 残業申請のルールは？
           </div>
         </div>
       </div>
@@ -67,42 +74,80 @@
       </div>
 
       <div class="status-area">
+        <span class="status-item" :class="remainingChats <= 3 ? 'is-warn' : ''">
+          残り回数：<b>{{ remainingChats }}</b> / {{ MAX_CHATS }}
+        </span>
         <span class="status-item" :class="isCharLimitReached ? 'is-danger' : ''">
           {{ inputLength }} / {{ MAX_CHARS }}文字
         </span>
       </div>
 
       <div v-if="errorMessage" class="error-text">{{ errorMessage }}</div>
-
-      <div class="footer-note">
-        ※社内ナレッジに登録された情報のみ回答します。
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import api from '../api'
-import { BookOpen, Send } from 'lucide-vue-next'
+import { Bot, Send } from 'lucide-vue-next'
+import { auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 type ChatRole = 'user' | 'assistant'
-type ChatMessage = { id: string; role: ChatRole; text: string; time: string }
+type ChatMessage = {
+  id: string
+  role: ChatRole
+  text: string
+  time: string
+  usedTools?: string[]
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  search_knowledge: '📚 社内ナレッジを参照',
+  get_my_attendance: '📋 自分の勤怠データを参照',
+  get_all_attendance: '👥 全勤怠データを参照',
+}
+
+function toolLabel(tool: string): string {
+  return TOOL_LABELS[tool] ?? tool
+}
 
 const MAX_CHARS = 300
+const MAX_CHATS = 10
+const CHAT_COUNT_KEY = 'knowledge_chat_send_count_v1'
 
 const input = ref('')
 const isSending = ref(false)
 const errorMessage = ref('')
 const messages = ref<ChatMessage[]>([])
 const chatScrollRef = ref<HTMLDivElement | null>(null)
+const sendCount = ref(0)
 
 const inputLength = computed(() => input.value.length)
 const isCharLimitReached = computed(() => inputLength.value >= MAX_CHARS)
-const canSend = computed(() => !!input.value.trim() && !isSending.value)
+const remainingChats = computed(() => Math.max(0, MAX_CHATS - sendCount.value))
+const isChatLimitReached = computed(() => remainingChats.value <= 0)
+const canSend = computed(() => !!input.value.trim() && !isSending.value && !isChatLimitReached.value)
 
 function getTimeString() {
   return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+}
+
+function loadSendCount() {
+  const n = Number(sessionStorage.getItem(CHAT_COUNT_KEY))
+  sendCount.value = Number.isFinite(n) && n >= 0 ? n : 0
+}
+
+function saveSendCount() {
+  sessionStorage.setItem(CHAT_COUNT_KEY, String(sendCount.value))
+}
+
+function resetSession() {
+  sessionStorage.removeItem(CHAT_COUNT_KEY)
+  sendCount.value = 0
+  input.value = ''
+  errorMessage.value = ''
 }
 
 function onInput() {
@@ -117,10 +162,15 @@ function onInput() {
 async function scrollToBottom() {
   await nextTick()
   const el = chatScrollRef.value
-  if (el) el.scrollTop = el.scrollHeight
+  if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
 }
 
 async function sendMessage() {
+  if (isChatLimitReached.value) {
+    errorMessage.value = `チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。再ログインで回数がリセットされます。`
+    return
+  }
+
   const text = input.value.trim()
   if (!text || isSending.value) return
 
@@ -131,20 +181,38 @@ async function sendMessage() {
     text: trimmed,
     time: getTimeString(),
   })
+
+  sendCount.value += 1
+  saveSendCount()
+
   input.value = ''
   await scrollToBottom()
 
+  if (isChatLimitReached.value) {
+    errorMessage.value = `チャットの利用回数は1回のログインにつき${MAX_CHATS}回までです。再ログインで回数がリセットされます。`
+  }
+
   isSending.value = true
   try {
-    const { data } = await api.post<{ text: string }>('/api/knowledge/chat', { message: trimmed })
+    const requestBody = { message: trimmed }
+    console.log('[KNOWLEDGE CHAT] リクエスト送信:', requestBody)
+
+    const { data } = await api.post<{ text: string; usedTools: string[] }>(
+      '/api/knowledge/chat',
+      requestBody
+    )
+
+    console.log('[KNOWLEDGE CHAT] レスポンス受信:', data)
 
     messages.value.push({
       id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),
       role: 'assistant',
       text: data?.text ?? '（回答を取得できませんでした）',
       time: getTimeString(),
+      usedTools: data?.usedTools ?? [],
     })
   } catch (err: any) {
+    console.error('[KNOWLEDGE CHAT] エラー:', err?.response?.data || err?.message)
     const msg = err?.response?.data?.error || err?.message || '通信に失敗しました。'
     messages.value.push({
       id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),
@@ -157,6 +225,18 @@ async function sendMessage() {
     await scrollToBottom()
   }
 }
+
+onMounted(() => {
+  onAuthStateChanged(auth, (u) => {
+    if (u) {
+      loadSendCount()
+    } else {
+      resetSession()
+    }
+  })
+})
+
+watch(sendCount, saveSendCount)
 </script>
 
 <style scoped>
@@ -217,7 +297,8 @@ async function sendMessage() {
 
 .chat-area {
   position: relative;
-  height: 520px;
+  height: calc(100vh - 420px);
+  min-height: 280px;
   padding: 1rem;
   overflow-y: auto;
   background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
@@ -278,6 +359,24 @@ async function sendMessage() {
 .role-label { font-size: 0.85rem; font-weight: 900; color: #1e3a8a; }
 .msg-row.is-user .role-label { color: #0f172a; }
 .time { font-size: 0.78rem; color: #64748b; }
+
+.tool-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.tool-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-weight: 700;
+}
 
 .text {
   white-space: pre-wrap;
@@ -343,10 +442,13 @@ async function sendMessage() {
   border-top: 1px solid #e2e8f0;
   background: #fff;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .status-item { font-size: 0.85rem; color: #64748b; }
+.status-item.is-warn { color: #b45309; font-weight: 900; }
 .status-item.is-danger { color: #dc2626; font-weight: 900; }
 
 .error-text {
@@ -357,18 +459,10 @@ async function sendMessage() {
   font-size: 0.9rem;
 }
 
-.footer-note {
-  padding: 0.6rem 0.9rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 0.85rem;
-}
-
 @media (max-width: 600px) {
   .knowledge-chat-container { padding: 1rem; }
   .title { font-size: 1.7rem; }
-  .chat-area { height: 460px; padding: 0.85rem; }
+  .chat-area { height: calc(100vh - 360px); min-height: 260px; padding: 0.85rem; }
   .input-area { flex-direction: column; gap: 0.6rem; }
   .send-btn { width: 100%; }
 }
