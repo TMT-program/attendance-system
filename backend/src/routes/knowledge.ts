@@ -104,7 +104,7 @@ const TOOL_GET_MY_ATTENDANCE = {
 
 const TOOL_GET_ALL_ATTENDANCE = {
   name: 'get_all_attendance',
-  description: '全ユーザーの勤怠記録を取得する。管理者専用。',
+  description: '全ユーザーまたは特定ユーザーの勤怠記録を取得する。他のユーザーの勤怠を確認したい場合にも使用する。管理者専用。',
   input_schema: {
     type: 'object',
     properties: {
@@ -122,7 +122,7 @@ const SYSTEM_PROMPT = `あなたは勤怠管理システムのAIアシスタン�
 ツールの使い分け:
 - 社内規定・申請手順・就業規則・経費精算などのルールに関する質問 → search_knowledge を使う
 - 自分の出退勤・残業・勤怠記録に関する質問 → get_my_attendance を使う
-- 全ユーザーの勤怠に関する質問（管理者のみ利用可能） → get_all_attendance を使う
+- 全ユーザーまたは他のユーザー個人の勤怠に関する質問（管理者のみ利用可能） → get_all_attendance を使う
 - ツールが不要な一般的な質問 → そのまま回答する`.trim()
 
 // ── ツール実行関数 ───────────────────────────────────────────────────────────
