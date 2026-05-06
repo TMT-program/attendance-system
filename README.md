@@ -1,7 +1,7 @@
 # 📅 勤怠管理システム（Attendance Management System）
 
 Vue + Node.js + Firebase を用いて構築した、**勤怠・勤務報告管理ツール（ポートフォリオ）**です。  
-出勤/退勤打刻、勤務報告の提出・承認、ユーザー管理、周知事項PDFの共有に加え、**AIチャット（ChatGPT API連携）**および **RAGベースの社内ナレッジ自律回答機能（Gemini API + Pinecone連携）** も実装しています。  
+出勤/退勤打刻、勤務報告の提出・承認、ユーザー管理、周知事項PDFの共有に加え、**AIチャットと社内ナレッジ回答をFunction Callingで統合したAIアシスタント（Azure Claude + OpenAI Embedding + Pinecone連携）** も実装しています。  
 実務を想定した要件で、設計〜実装〜デプロイまで一人で対応しています。
 
 ---
@@ -66,23 +66,23 @@ PASS：UserTest99
   - ドラッグ＆ドロップ対応  
   - PDF限定 / 複数同時アップロード / エラーメッセージ表示
 
-### 🧠 社内ナレッジ自律回答（RAG）
-- 社内ドキュメント（.txt / .md）をアップロードしてナレッジを登録
-- **Gemini Embedding API**（gemini-embedding-001）でテキストをベクトル化し **Pinecone**（ベクトルDB）に保存
-- ユーザーの質問をベクトル化 → Pineconeで類似検索（上位5件取得）→ **Gemini**（gemini-2.5-flash-lite）で回答生成
-- 登録されたナレッジの内容のみ回答対象とし、社外情報との混在を防止
+### 🤖 AIアシスタント（チャット・社内ナレッジ回答統合）
+- AIチャット機能と社内ナレッジ自律回答（RAG）を**一つのチャット機能に統合**
+- バックエンド（Express）経由で **Azure Claude**（claude-opus-4-7）にリクエスト
+- **Function Calling（ツール呼び出し）** により、AIが状況に応じて以下を自動判断・実行：
+  - `search_knowledge`：登録済み社内ナレッジを意味検索して回答
+  - `get_my_attendance`：ログインユーザー自身の勤怠データを取得して回答
+  - `get_all_attendance`：全ユーザーの勤怠データを取得して回答（管理者のみ）
+- テキストのベクトル化：**OpenAI Embedding API**（text-embedding-3-small・768次元）
+- 類似度検索：**Pinecone**（ベクトルDB）で上位5件取得（スコア≥0.5）
+- 社内ドキュメント（.txt / .md）をアップロードしてナレッジを登録し、RAG回答の対象として活用
+- **ツール実行バッジ表示**：どのツールを呼び出したかをUIで可視化
+- 会話履歴を保持（最新20件をコンテキストとして送信）
 - **管理者機能**：ナレッジの登録・内容閲覧・削除
 - **コスト考慮**：Pinecone無料プランのストレージ制約に合わせ768次元に最適化（有料プラン移行でフル精度の3072次元に対応可能な設計）
-
-### 🤖 AIチャット（ChatGPT API連携）
-- 勤怠管理システムの使い方や入力ルール等を **チャット形式で質問**できる
-- バックエンド（Express）経由で OpenAI API（Responses API）へ問い合わせ
-- 返答は画面内に会話ログとして表示
-- **会話の継続**：`previous_response_id` を用いて、前回までの文脈を引き継いで回答
-- **安全配慮**：機密情報（パスワード/APIキー/個人情報）の入力を促さないよう指示
 - **利用制限（UI側）**
   - 入力は **300文字まで**
-  - 1回のログインにつき **送信10回まで**（再ログインでリセット）
+  - 1回のログインにつき **送信10回まで**（sessionStorageで管理）
   - 上限到達時は **赤文字で通知**し、送信を抑止
 
 ### 📦 出力
@@ -103,8 +103,8 @@ PASS：UserTest99
 | DB | Firebase Firestore |
 | 認証 | Firebase Authentication |
 | ファイル | Firebase Storage |
-| AI（チャット） | OpenAI API（Responses API） |
-| AI（RAG） | Gemini Embedding API / Gemini 2.5 Flash Lite |
+| AI（チャット・ナレッジ回答） | Azure Claude（claude-opus-4-7） |
+| Embedding（ベクトル化） | OpenAI Embedding API（text-embedding-3-small） |
 | ベクトルDB | Pinecone |
 | デプロイ | Vercel（フロント） / Render（バックエンド） |
 | その他 | axios / multer / dayjs / GitHub / Firebase CLI |
@@ -115,8 +115,8 @@ PASS：UserTest99
 
 | 権限 | 機能概要 |
 |------|----------|
-| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、周知PDFの閲覧、AIチャット、社内ナレッジ回答 |
-| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、周知PDFアップロード/削除、CSV出力、AIチャット、社内ナレッジ回答、ナレッジ管理（登録・閲覧・削除） |
+| 一般ユーザー | 勤怠打刻、勤務報告の提出・確認、周知PDFの閲覧、AIアシスタント（チャット・社内ナレッジ回答） |
+| 管理者ユーザー | 全ユーザーの勤務報告確認・承認、ユーザー管理、周知PDFアップロード/削除、CSV出力、AIアシスタント（チャット・社内ナレッジ回答・全勤怠照会）、ナレッジ管理（登録・閲覧・削除） |
 
 ---
 
