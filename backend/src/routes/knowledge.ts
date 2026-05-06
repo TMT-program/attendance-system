@@ -59,7 +59,7 @@ async function callAzureClaude(messages: any[], tools: any[]): Promise<any> {
     {
       model,
       max_tokens: 2048,
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(req.isAdmin ?? false),
       messages,
       tools,
     },
@@ -116,7 +116,7 @@ const TOOL_GET_ALL_ATTENDANCE = {
 }
 
 // ── システムプロンプト ────────────────────────────────────────────────────────
-function buildSystemPrompt(): string {
+function buildSystemPrompt(isAdmin: boolean): string {
   const now = new Date().toLocaleString('ja-JP', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
@@ -126,10 +126,12 @@ function buildSystemPrompt(): string {
     minute: '2-digit',
     weekday: 'short',
   })
+  const role = isAdmin ? '管理者（全ユーザーの勤怠データにアクセス可能）' : '一般ユーザー'
   return `あなたは勤怠管理システムのAIアシスタントです。
 ユーザーの質問に応じて適切なツールを使い、日本語で簡潔に回答してください。
 
 現在の日時: ${now}（日本時間）
+現在のユーザー権限: ${role}
 
 ツールの使い分け:
 - 社内規定・申請手順・就業規則・経費精算などのルールに関する質問 → search_knowledge を使う
