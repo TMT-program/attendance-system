@@ -59,7 +59,7 @@ async function callAzureClaude(messages: any[], tools: any[]): Promise<any> {
     {
       model,
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(),
       messages,
       tools,
     },
@@ -116,14 +116,27 @@ const TOOL_GET_ALL_ATTENDANCE = {
 }
 
 // ── システムプロンプト ────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `あなたは勤怠管理システムのAIアシスタントです。
+function buildSystemPrompt(): string {
+  const now = new Date().toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    weekday: 'short',
+  })
+  return `あなたは勤怠管理システムのAIアシスタントです。
 ユーザーの質問に応じて適切なツールを使い、日本語で簡潔に回答してください。
+
+現在の日時: ${now}（日本時間）
 
 ツールの使い分け:
 - 社内規定・申請手順・就業規則・経費精算などのルールに関する質問 → search_knowledge を使う
 - 自分の出退勤・残業・勤怠記録に関する質問 → get_my_attendance を使う
 - 全ユーザーまたは他のユーザー個人の勤怠に関する質問（管理者のみ利用可能） → get_all_attendance を使う
 - ツールが不要な一般的な質問 → そのまま回答する`.trim()
+}
 
 // ── ツール実行関数 ───────────────────────────────────────────────────────────
 async function executeSearchKnowledge(query: string): Promise<string> {
