@@ -169,21 +169,23 @@ async function executeGetAllAttendance(year: string, month: string): Promise<str
   const yearMonth = `${year}-${month.padStart(2, '0')}`
 
   const usersSnapshot = await db.collection('users').get()
-  const userNames: Record<string, string> = {}
-  usersSnapshot.forEach((doc) => {
-    const data = doc.data()
-    userNames[doc.id] = data.displayName || data.email || doc.id
-  })
-
-  const recordsSnapshot = await db.collection('attendanceRecords').get()
   const results: Record<string, any> = {}
-  for (const userDoc of recordsSnapshot.docs) {
-    const recordDoc = await userDoc.ref.collection('records').doc(yearMonth).get()
-    if (recordDoc.exists) {
-      const name = userNames[userDoc.id] || userDoc.id
-      results[name] = recordDoc.data()
-    }
-  }
+
+  await Promise.all(
+    usersSnapshot.docs.map(async (userDoc) => {
+      const data = userDoc.data()
+      const name = data.displayName || data.email || userDoc.id
+      const recordDoc = await db
+        .collection('attendanceRecords')
+        .doc(userDoc.id)
+        .collection('records')
+        .doc(yearMonth)
+        .get()
+      if (recordDoc.exists) {
+        results[name] = recordDoc.data()
+      }
+    })
+  )
 
   if (Object.keys(results).length === 0) return `${yearMonth}の勤怠データはありません。`
   return JSON.stringify(results)
