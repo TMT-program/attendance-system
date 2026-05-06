@@ -10,6 +10,10 @@ Vue + Node.js + Firebase を用いて構築した、**勤怠・勤務報告管�
 
 ![システム構成図](docs/architecture.png)
 
+### 🤖 AIアシスタント機能のシステム構成図
+
+![AIアシスタント機能のシステム構成図](docs/AIarchitecture.png)
+
 ---
 
 ## 🌐 デモURL（要ログイン）
