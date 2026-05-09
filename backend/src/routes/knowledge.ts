@@ -52,14 +52,14 @@ async function embedText(text: string): Promise<number[]> {
 }
 
 // ── Azure Claude呼び出し ──────────────────────────────────────────────────────
-async function callAzureClaude(messages: any[], tools: any[]): Promise<any> {
+async function callAzureClaude(messages: any[], tools: any[], isAdmin: boolean): Promise<any> {
   const { apiKey, endpoint, model } = getAzureClaudeConfig()
   const { data } = await axios.post(
     endpoint,
     {
       model,
       max_tokens: 2048,
-      system: buildSystemPrompt(req.isAdmin ?? false),
+      system: buildSystemPrompt(isAdmin),
       messages,
       tools,
     },
@@ -330,7 +330,7 @@ router.post('/chat', verifyToken, async (req, res) => {
         messages_count: messages.length,
       })
 
-      response = await callAzureClaude(messages, tools)
+      response = await callAzureClaude(messages, tools, req.isAdmin ?? false)
 
       console.log('[AZURE CLAUDE RESPONSE]', {
         stop_reason: response.stop_reason,
