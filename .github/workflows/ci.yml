@@ -28,6 +28,9 @@ jobs:
       - name: TypeScript 型チェック
         run: npx tsc --noEmit
 
+      - name: テスト実行
+        run: npm test
+
   frontend:
     name: Frontend (Vite ビルド)
     runs-on: ubuntu-latest
@@ -48,3 +51,6 @@ jobs:
 
       - name: ビルド
         run: npm run build
+
+      - name: テスト実行
+        run: npm test
