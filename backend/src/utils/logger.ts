@@ -15,11 +15,16 @@ type UserActionLog = {
   details?: Record<string, unknown>
 }
 
+const RETENTION_DAYS = 30
+
 export function writeLog(
   userId: string,
   userEmail: string | undefined,
   data: AiChatLog | UserActionLog
 ): void {
+  const expireAt = new Date()
+  expireAt.setDate(expireAt.getDate() + RETENTION_DAYS)
+
   admin
     .firestore()
     .collection('logs')
@@ -28,6 +33,7 @@ export function writeLog(
       userId,
       userEmail: userEmail ?? null,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      expireAt,
     })
     .catch((err) => console.error('[LOGGER ERROR]', err))
 }
