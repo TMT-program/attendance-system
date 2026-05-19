@@ -11,6 +11,7 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
   try {
     const decoded = await admin.auth().verifyIdToken(token)
     req.uid = decoded.uid
+    req.email = decoded.email
     req.isAdmin = decoded.admin === true
     next()
   } catch {

@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express'
 import { admin } from '../firebase'
 import { verifyToken, requireAdmin } from '../middleware/auth'
+import { writeLog } from '../utils/logger'
 
 const router = express.Router()
 
@@ -49,6 +50,7 @@ router.post('/start', verifyToken, async (req: Request, res: Response) => {
       .collection('records').doc(yearMonth)
 
     await docRef.set({ [fullDate]: { start: time } }, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'punch_in', details: { uid, time } })
     res.status(200).json({ message: '出勤時間を記録しました' })
   } catch (error) {
     console.error('出勤記録エラー:', error)
@@ -73,6 +75,7 @@ router.post('/end', verifyToken, async (req: Request, res: Response) => {
       .collection('records').doc(yearMonth)
 
     await docRef.set({ [fullDate]: { end: time } }, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'punch_out', details: { uid, time } })
     res.status(200).json({ message: '退勤時間を記録しました' })
   } catch (error) {
     console.error('退勤記録エラー:', error)
@@ -165,6 +168,7 @@ router.post('/report', verifyToken, async (req: Request, res: Response) => {
     if (end) updateData[dayKey].end = end
 
     await docRef.set(updateData, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'report', details: { uid, date, status } })
     res.status(200).json({ message: '勤務報告を保存しました' })
   } catch (error) {
     console.error('勤務報告保存エラー:', error)
@@ -192,6 +196,7 @@ router.post('/approve', verifyToken, requireAdmin, async (req: Request, res: Res
       .collection('records').doc(yearMonth)
 
     await docRef.set({ [dayKey]: { status: '承認済' } }, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'approve', details: { targetUid: uid, date } })
     res.status(200).json({ message: '勤務報告を承認しました' })
   } catch (error) {
     console.error('勤務報告承認エラー:', error)
@@ -219,6 +224,7 @@ router.post('/reject', verifyToken, requireAdmin, async (req: Request, res: Resp
       .collection('records').doc(yearMonth)
 
     await docRef.set({ [dayKey]: { status: '未承認' } }, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'reject', details: { targetUid: uid, date } })
     res.status(200).json({ message: '勤務報告を却下しました' })
   } catch (error) {
     console.error('勤務報告却下エラー:', error)
@@ -250,6 +256,7 @@ router.post('/revoke', verifyToken, async (req: Request, res: Response) => {
       .collection('records').doc(yearMonth)
 
     await docRef.set({ [dayKey]: { status: '承認待' } }, { merge: true })
+    writeLog(req.uid!, req.email, { type: 'user_action', action: 'revoke', details: { uid, date } })
     res.status(200).json({ message: '勤務報告の承認を取り消しました' })
   } catch (error) {
     console.error('勤務報告取消エラー:', error)

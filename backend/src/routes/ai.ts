@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import util from 'node:util'
 import rateLimit from 'express-rate-limit'
 import { verifyToken } from '../middleware/auth'
+import { writeLog } from '../utils/logger'
 
 const chatRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1分
@@ -231,10 +232,20 @@ router.post('/chat', verifyToken, chatRateLimit, async (req, res) => {
 
     const extractedText = extractTextFromResponse(response)
 
+    const responseText =
+      extractedText ||
+      '（回答を生成できませんでした。もう一度別の聞き方で試してください。）'
+
+    writeLog(req.uid!, req.email, {
+      type: 'ai_chat',
+      chatType: 'general',
+      userMessage: message,
+      aiResponse: responseText,
+      model: 'gpt-5-mini',
+    })
+
     const payload: ChatResponseBody = {
-      text:
-        extractedText ||
-        '（回答を生成できませんでした。もう一度別の聞き方で試してください。）',
+      text: responseText,
       responseId: (response?.id ?? '').toString(),
     }
 
