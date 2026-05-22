@@ -314,16 +314,98 @@ router.delete('/:docId', verifyToken, requireAdmin, async (req, res) => {
 })
 
 // ── ツール実行共通ヘルパー ────────────────────────────────────────────────────
-async function executeTool(toolName: string, toolInput: any, req: any): Promise<string> {
+async function executeTool(toolName: string, toolInput: any, uid: string, isAdmin: boolean): Promise<string> {
   if (toolName === 'search_knowledge') {
     return executeSearchKnowledge(toolInput.query)
   } else if (toolName === 'get_my_attendance') {
-    return executeGetMyAttendance(req.uid!, toolInput.year, toolInput.month)
-  } else if (toolName === 'get_all_attendance' && req.isAdmin) {
+    return executeGetMyAttendance(uid, toolInput.year, toolInput.month)
+  } else if (toolName === 'get_all_attendance' && isAdmin) {
     return executeGetAllAttendance(toolInput.year, toolInput.month)
   } else {
     return '権限がありません'
   }
+}
+
+// ── チャットコアロジック（HTTP・Slack両方から呼び出し可能） ──────────────────
+export async function runKnowledgeChat(
+  message: string,
+  history: { role: string; content: string }[],
+  uid: string,
+  isAdmin: boolean
+): Promise<{ text: string; usedTools: string[] }> {
+  const tools: any[] = [TOOL_SEARCH_KNOWLEDGE, TOOL_GET_MY_ATTENDANCE]
+  if (isAdmin) tools.push(TOOL_GET_ALL_ATTENDANCE)
+
+  const messages: any[] = [
+    ...history.map((h) => ({ role: h.role, content: h.content })),
+    { role: 'user', content: message },
+  ]
+  const usedTools: string[] = []
+  const MAX_ITERATIONS = 5
+  let finalText = '（回答を生成できませんでした）'
+
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    if (USE_LOCAL_LLM) {
+      console.log(`[OLLAMA REQUEST] iteration=${i}`, { messages_count: messages.length })
+      const ollamaRes = await callLocalLLM(messages, tools, buildSystemPrompt(isAdmin))
+      const choice = ollamaRes.choices[0]
+      console.log('[OLLAMA RESPONSE]', { finish_reason: choice.finish_reason })
+
+      if (choice.finish_reason !== 'tool_calls' || !choice.message.tool_calls?.length) {
+        finalText = choice.message.content ?? finalText
+        break
+      }
+      messages.push(choice.message)
+
+      for (const toolCall of choice.message.tool_calls) {
+        const toolName: string = toolCall.function.name
+        const toolInput = JSON.parse(toolCall.function.arguments)
+        usedTools.push(toolName)
+        console.log('[TOOL EXECUTE]', { tool: toolName, input: toolInput })
+        let result: string
+        try {
+          result = await executeTool(toolName, toolInput, uid, isAdmin)
+        } catch (toolErr: any) {
+          result = `ツール実行エラー: ${toolErr.message}`
+          console.error('[TOOL ERROR]', { tool: toolName, error: toolErr.message })
+        }
+        console.log('[TOOL RESULT]', { tool: toolName, result_length: result!.length })
+        messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result! })
+      }
+    } else {
+      console.log(`[AZURE CLAUDE REQUEST] iteration=${i}`, { messages_count: messages.length })
+      const response = await callAzureClaude(messages, tools, isAdmin)
+      console.log('[AZURE CLAUDE RESPONSE]', { stop_reason: response.stop_reason, content_types: response.content?.map((c: any) => c.type), usage: response.usage })
+
+      if (response.stop_reason !== 'tool_use') {
+        const textBlock = response?.content?.find((c: any) => c.type === 'text')
+        finalText = textBlock?.text ?? finalText
+        break
+      }
+      messages.push({ role: 'assistant', content: response.content })
+
+      const toolResults: any[] = []
+      for (const block of response.content as any[]) {
+        if (block.type !== 'tool_use') continue
+        const toolName: string = block.name
+        const toolInput = block.input
+        usedTools.push(toolName)
+        console.log('[TOOL EXECUTE]', { tool: toolName, input: toolInput })
+        let result: string
+        try {
+          result = await executeTool(toolName, toolInput, uid, isAdmin)
+        } catch (toolErr: any) {
+          result = `ツール実行エラー: ${toolErr.message}`
+          console.error('[TOOL ERROR]', { tool: toolName, error: toolErr.message })
+        }
+        console.log('[TOOL RESULT]', { tool: toolName, result_length: result!.length })
+        toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result! })
+      }
+      messages.push({ role: 'user', content: toolResults })
+    }
+  }
+
+  return { text: finalText, usedTools }
 }
 
 // ── チャット（Function Calling） ──────────────────────────────────────────────
@@ -340,94 +422,19 @@ router.post('/chat', verifyToken, async (req, res) => {
 
     console.log('[KNOWLEDGE CHAT REQUEST]', { uid: req.uid, isAdmin: req.isAdmin, message, provider: USE_LOCAL_LLM ? 'ollama' : 'azure-claude' })
 
-    const tools: any[] = [TOOL_SEARCH_KNOWLEDGE, TOOL_GET_MY_ATTENDANCE]
-    if (req.isAdmin) tools.push(TOOL_GET_ALL_ATTENDANCE)
-
-    const messages: any[] = [
-      ...history.map((h) => ({ role: h.role, content: h.content })),
-      { role: 'user', content: message },
-    ]
-    const usedTools: string[] = []
-    const MAX_ITERATIONS = 5
-    let finalText = '（回答を生成できませんでした）'
-
-    for (let i = 0; i < MAX_ITERATIONS; i++) {
-      if (USE_LOCAL_LLM) {
-        // ── Ollamaパス（OpenAI互換形式） ──
-        console.log(`[OLLAMA REQUEST] iteration=${i}`, { messages_count: messages.length })
-        const ollamaRes = await callLocalLLM(messages, tools, buildSystemPrompt(req.isAdmin ?? false))
-        const choice = ollamaRes.choices[0]
-        console.log('[OLLAMA RESPONSE]', { finish_reason: choice.finish_reason })
-
-        if (choice.finish_reason !== 'tool_calls' || !choice.message.tool_calls?.length) {
-          finalText = choice.message.content ?? finalText
-          break
-        }
-
-        messages.push(choice.message)
-
-        for (const toolCall of choice.message.tool_calls) {
-          const toolName: string = toolCall.function.name
-          const toolInput = JSON.parse(toolCall.function.arguments)
-          usedTools.push(toolName)
-          console.log('[TOOL EXECUTE]', { tool: toolName, input: toolInput })
-          let result: string
-          try {
-            result = await executeTool(toolName, toolInput, req)
-          } catch (toolErr: any) {
-            result = `ツール実行エラー: ${toolErr.message}`
-            console.error('[TOOL ERROR]', { tool: toolName, error: toolErr.message })
-          }
-          console.log('[TOOL RESULT]', { tool: toolName, result_length: result!.length })
-          messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result! })
-        }
-      } else {
-        // ── Azure Claudeパス（Anthropic形式） ──
-        console.log(`[AZURE CLAUDE REQUEST] iteration=${i}`, { messages_count: messages.length })
-        const response = await callAzureClaude(messages, tools, req.isAdmin ?? false)
-        console.log('[AZURE CLAUDE RESPONSE]', { stop_reason: response.stop_reason, content_types: response.content?.map((c: any) => c.type), usage: response.usage })
-
-        if (response.stop_reason !== 'tool_use') {
-          const textBlock = response?.content?.find((c: any) => c.type === 'text')
-          finalText = textBlock?.text ?? finalText
-          break
-        }
-
-        messages.push({ role: 'assistant', content: response.content })
-
-        const toolResults: any[] = []
-        for (const block of response.content as any[]) {
-          if (block.type !== 'tool_use') continue
-          const toolName: string = block.name
-          const toolInput = block.input
-          usedTools.push(toolName)
-          console.log('[TOOL EXECUTE]', { tool: toolName, input: toolInput })
-          let result: string
-          try {
-            result = await executeTool(toolName, toolInput, req)
-          } catch (toolErr: any) {
-            result = `ツール実行エラー: ${toolErr.message}`
-            console.error('[TOOL ERROR]', { tool: toolName, error: toolErr.message })
-          }
-          console.log('[TOOL RESULT]', { tool: toolName, result_length: result!.length })
-          toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result! })
-        }
-
-        messages.push({ role: 'user', content: toolResults })
-      }
-    }
+    const result = await runKnowledgeChat(message, history, req.uid!, req.isAdmin ?? false)
 
     writeLog(req.uid!, req.email, {
       type: 'ai_chat',
       chatType: 'knowledge',
       userMessage: message,
-      aiResponse: finalText,
-      toolsUsed: usedTools,
+      aiResponse: result.text,
+      toolsUsed: result.usedTools,
       model: USE_LOCAL_LLM ? 'ollama/gemma3:4b' : 'azure-claude',
     })
 
-    console.log('[KNOWLEDGE CHAT RESPONSE]', { usedTools, text_length: finalText.length })
-    return res.json({ text: finalText, usedTools })
+    console.log('[KNOWLEDGE CHAT RESPONSE]', { usedTools: result.usedTools, text_length: result.text.length })
+    return res.json(result)
   } catch (err: any) {
     console.error('[KNOWLEDGE CHAT ERROR]', err)
     return res.status(500).json({ error: 'チャットの処理に失敗しました' })

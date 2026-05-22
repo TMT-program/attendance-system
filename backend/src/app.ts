@@ -5,8 +5,12 @@ import attendanceRouter from './routes/attendance'
 import aiRouter from './routes/ai'
 import infoRouter from './routes/info'
 import knowledgeRouter from './routes/knowledge'
+import { slackRouter } from './routes/slack'
 
 const app = express()
+
+// Slack は独自のボディパーサーを持つため express.json() より先にマウントする
+app.use(slackRouter)
 
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
