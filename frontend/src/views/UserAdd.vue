@@ -41,9 +41,9 @@ const addUser = async () => {
 
     newEmail.value = ''
     newPassword.value = ''
-  } catch (error) {
+  } catch (error: any) {
     console.error('追加失敗:', error)
-    addMessage.value = 'ユーザー追加に失敗しました'
+    addMessage.value = error.response?.data?.error ?? 'ユーザー追加に失敗しました'
 
     if (messageTimer) clearTimeout(messageTimer)
     messageTimer = setTimeout(() => {

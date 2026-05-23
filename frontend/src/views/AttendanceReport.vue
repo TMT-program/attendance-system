@@ -212,8 +212,7 @@ const nextMonth = () => {
   text-rendering: optimizeLegibility;
   color: #0f172a;
 
-  /* ✅ 子が横にはみ出しても「ページ全体の横幅」を広げない（タブのブレ防止） */
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .header {
@@ -286,9 +285,8 @@ const nextMonth = () => {
 .tab-content {
   min-height: 300px;
 
-  /* ✅ タブ中身が横にはみ出しても親の幅を変えない（中央基準がズレない） */
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /*

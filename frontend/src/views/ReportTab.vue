@@ -34,8 +34,8 @@
           <LoadingSpinner v-if="isLoading" />
 
           <!-- テーブル -->
-          <div v-else class="table-scroll">
-            <div class="table-frame">
+          <div v-else class="table-frame">
+            <div class="table-scroll">
               <table class="record-table" role="table" aria-label="勤務実績テーブル">
                 <thead>
                   <tr>
@@ -464,7 +464,8 @@ const cancelSubmission = async (entry: RecordEntry) => {
 
 /* ===== 枠担当 ===== */
 .table-frame {
-  display: inline-block;
+  display: block;
+  width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;

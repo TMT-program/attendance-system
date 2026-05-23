@@ -29,6 +29,12 @@ router.post('/', verifyToken, requireAdmin, async (req: Request, res: Response) 
     res.status(201).json({ uid: userRecord.uid, email: userRecord.email })
   } catch (error: any) {
     console.error('ユーザー作成エラー:', error)
+    if (error.code === 'auth/email-already-exists') {
+      return res.status(409).json({ error: 'このメールアドレスはすでに登録されています' })
+    }
+    if (error.code === 'auth/invalid-password') {
+      return res.status(400).json({ error: 'パスワードは6文字以上で設定してください' })
+    }
     res.status(500).json({ error: 'ユーザー作成に失敗しました' })
   }
 })
