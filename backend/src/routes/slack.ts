@@ -35,22 +35,31 @@ function jstTimeStr(): string {
   return new Date().toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' })
 }
 
-// 打刻処理の共通ロジック
-async function recordAttendance(uid: string, type: 'start' | 'end'): Promise<void> {
+// 打刻処理の共通ロジック（二重打刻チェック付き）
+// 戻り値: 'ok' | 'already_punched' | 'not_started'
+async function recordAttendance(uid: string, type: 'start' | 'end'): Promise<'ok' | 'already_punched' | 'not_started'> {
   const now = new Date()
   const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
   const year = jst.getUTCFullYear()
   const month = String(jst.getUTCMonth() + 1).padStart(2, '0')
   const day = String(jst.getUTCDate()).padStart(2, '0')
   const yearMonth = `${year}-${month}`
-  const dayKey = `${month}-${day}` // GET ハンドラーが期待する MM-DD 形式
-  const timeStr = `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}` // Web と同じ HH:MM 形式
+  const dayKey = `${month}-${day}`
+  const timeStr = `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`
 
   const docRef = admin.firestore()
     .collection('attendanceRecords').doc(uid)
     .collection('records').doc(yearMonth)
 
+  const doc = await docRef.get()
+  const existing = doc.exists ? (doc.data()?.[dayKey] ?? {}) : {}
+
+  if (type === 'start' && existing.start) return 'already_punched'
+  if (type === 'end' && existing.end) return 'already_punched'
+  if (type === 'end' && !existing.start) return 'not_started'
+
   await docRef.set({ [dayKey]: { [type]: timeStr } }, { merge: true })
+  return 'ok'
 }
 
 // ── /kintai コマンド ───────────────────────────────────────────────────────────
@@ -70,7 +79,18 @@ slackApp.command('/kintai', async ({ command, ack, respond, client }) => {
   }
 
   try {
-    await recordAttendance(user.uid, sub)
+    const result = await recordAttendance(user.uid, sub)
+
+    if (result === 'already_punched') {
+      const label = sub === 'start' ? '出勤' : '退勤'
+      await respond(`:warning: 本日はすでに${label}打刻済みです。`)
+      return
+    }
+    if (result === 'not_started') {
+      await respond(':warning: 出勤打刻がされていないため退勤できません。先に `/kintai start` を実行してください。')
+      return
+    }
+
     writeLog(user.uid, undefined, {
       type: 'user_action',
       action: sub === 'start' ? 'punch_in' : 'punch_out',
