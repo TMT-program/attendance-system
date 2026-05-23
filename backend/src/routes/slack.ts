@@ -43,13 +43,13 @@ async function recordAttendance(uid: string, type: 'start' | 'end'): Promise<voi
   const month = String(jst.getUTCMonth() + 1).padStart(2, '0')
   const day = String(jst.getUTCDate()).padStart(2, '0')
   const yearMonth = `${year}-${month}`
-  const fullDate = `${year}-${month}-${day}`
+  const dayKey = `${month}-${day}` // GET ハンドラーが期待する MM-DD 形式
 
   const docRef = admin.firestore()
     .collection('attendanceRecords').doc(uid)
     .collection('records').doc(yearMonth)
 
-  await docRef.set({ [fullDate]: { [type]: now.toISOString() } }, { merge: true })
+  await docRef.set({ [dayKey]: { [type]: now.toISOString() } }, { merge: true })
 }
 
 // ── /kintai コマンド ───────────────────────────────────────────────────────────
