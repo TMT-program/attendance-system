@@ -413,16 +413,14 @@ const cancelSubmission = async (entry: RecordEntry) => {
   width: 120px;
 }
 
-/* ===== 中央寄せ：月切替＋テーブルを同一基準にする ===== */
+/* ===== 月切替＋テーブルのコンテナ ===== */
 .center-area {
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 
-/* ✅ ここが「中央基準」の箱（スマホではここを縮小） */
 .scaled-area {
-  display: inline-block;
+  display: block;
+  width: 100%;
   transform: none;
   transform-origin: top center;
 }
@@ -459,9 +457,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
 /* ===== テーブル（スクロール担当） ===== */
 .table-scroll {
   width: 100%;
-  max-width: 100%;
-  overflow-x: auto; /* PCはOK */
-  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 2px; /* 端がぴったり当たらないよう微調整 */
 }
 
 /* ===== 枠担当 ===== */
@@ -612,25 +610,9 @@ const cancelSubmission = async (entry: RecordEntry) => {
     align-self: center;
   }
 
-  /* 中央基準の箱も横はみ出し禁止 */
-  .center-area {
-    width: 100%;
-    overflow-x: hidden;
-    display: flex;
-    justify-content: center;
-  }
-
   /* ▼ スマホ縮小率（端末で微調整OK） */
   .report-container {
     --m-scale: 0.40;
-  }
-
-  .table-scroll {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;                 /* ✅ ここを復活 */
-    -webkit-overflow-scrolling: touch;
-    display: block;                   /* flex中心寄せは外すのが安全 */
   }
 
   /* ✅ zoomが効くブラウザ（Chrome/Edge系）はこれが一番安定 */
